@@ -7,6 +7,14 @@ Unter [www.bahnpreise.info](https://bahnpreise.info) ist die Instanz der Entwick
 ## Kompatibel
 * Deutsche Bahn (Spar- /Flexpreise, 2. Klasse)
 
+## Aufbau
+### Backend
+Das Backend sammelt die Daten und managed die Verbindungen. Geschrieben in Python.
+### API
+Die JSON-API stellt die Informationen des Backends zur Verfügung. Geschrieben in Python.
+### Frontend
+Das Frontend ist eine Website, geschrieben in JavaScript, sie stellt die Daten der API graphisch dar.
+
 ## Installation (English)
 ### Backend
 **Prerequisites**
