@@ -35,7 +35,19 @@ You need Python 3 installed.
 Thats it, now the database should fill up with connections and prices.
 
 ### Frontend
-_to be done_
+In the frontend folder you will find a simple HTML/Javascript only application which can be thrown on basically every webserver out there. No php/external ressources needed.
+
+### API
+In the `api` folder you will find a python/falcon application which needs the following packages installed via apt / pip:
+```
+apt-get update && apt-get install python python-pip python-mysqldb -y
+pip install gunicorn falcon orator
+```
+
+Also, the API needs to connect to the same database as the sheduler backend. You should have the mysql database set up at this point, so you can simply instert the host/username/database/password into the `mysql.ini` config file in the config folder.
+
+After that, the api can be started with the command provided in the startapi.sh:
+`gunicorn --workers 4 -b 0.0.0.0:8080 main:api -b [::1]:8080 --reload`
 
 ## Externe Ressourcen
 * [Schiene Bibliothek](https://github.com/kennell/schiene) von Kennell
