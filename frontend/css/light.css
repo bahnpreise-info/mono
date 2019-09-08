@@ -82,3 +82,13 @@ a:hover {
 .btns .btn {
     padding: 0.8rem;
 }
+
+.faq-body .card-header {
+    font-size: 120%;
+    font-weight: 700;
+    color: #d10e0e;
+}
+
+.faq-body .card {
+    margin-bottom: 1rem;
+}
