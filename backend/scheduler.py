@@ -24,16 +24,12 @@ class Scheduler():
     def setupLogger(self):
         try:
             self.logger = logging.getLogger('Scheduler')
-            self.logger.setLevel(logging.DEBUG)
+            self.logger.setLevel(logging.INFO)
             self.ch = logging.StreamHandler()
             self.ch.setLevel(logging.DEBUG)
-            self.log = logging.FileHandler('scheduler.log')
-            self.log.setLevel(logging.INFO)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             self.ch.setFormatter(formatter)
-            self.log.setFormatter(formatter)
             self.logger.addHandler(self.ch)
-            self.logger.addHandler(self.log)
             self.logger.debug("--------------------------------- START --------------------------------")
             self.logger.debug("Successfuly setup the logger.")
             return True
