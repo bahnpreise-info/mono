@@ -111,9 +111,9 @@ class Getstats:
         cache = r.get('statistics')
         if cache is not None:
             cache = json.loads(cache)
-            resp.body = json.dumps({"status": "success", "data": cache})
+            resp.body = json.dumps({"status": "success", "cached": "true", "data": cache})
 
-        data = {"status": "success", "data": {}}
+        data = {"status": "success", "cached": "false", "data": {}}
         # Requests in past hour
         query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)"
         result = db.select(query)
