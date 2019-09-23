@@ -1,18 +1,150 @@
 <template>
-  <div class="test">
-      <div class="alert alert-danger col" role="alert"> Diese Seite ist keine Seite der Deutschen Bahn oder eines anderen Bahn-Betreibers. Die aufgeführten Informationen sind unverbindlich und werden zu wissenschaftlichen Zwecken genutzt. </div> <div class="row"> <div class="col-xl-9"> <!-- Chart --> <div class="card shadow mb-4"> <div class="card-header py-3"> <h6 class="m-0 font-weight-bold text-primary" id="chart_name">Bahnpreise</h6> </div> <div class="card-body card-nopadding"> <div class="chart-area" id="bahnPriceAreachart1Top"> <canvas id="bahnPriceAreachart1"></canvas> </div> </div> </div> </div> <!-- Search beside chart --> <div class="col-xl-3"> <div class="active-pink-3 active-pink-4 mb-4"> <input class="form-control" type="text" placeholder="Suche" aria-label="Suche" id="connectionSearchBar"> <ul class="list-group" id="connectionSearchResults" style="overflow-y:scroll; max-height: 45vh"> </ul> </div> </div> </div> <!-- CARDS --> <div class="row" style="display: none;"> <div class="col row"> <!-- Card --> <div class="col-xl-4 col-md-4 mb-3"> <div class="card border-left-success shadow h-100 py-2"> <div class="card-body"> <div class="row no-gutters align-items-center"> <div class="col mr-2"> <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Geringster Preis</div> <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMinPrice">20,90€</div> </div> <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div> </div> </div> </div> </div> <!-- Card --> <div class="col-xl-4 col-md-4 mb-3"> <div class="card border-left-warning shadow h-100 py-2"> <div class="card-body"> <div class="row no-gutters align-items-center"> <div class="col mr-2"> <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Durchschnittlicher Preis</div> <div class="h5 mb-0 font-weight-bold text-gray-800" id="conAvrgPrice">25,90€</div> </div> <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div> </div> </div> </div> </div> <!-- Card --> <div class="col-xl-4 col-md-4 mb-3"> <div class="card border-left-primary shadow h-100 py-2"> <div class="card-body"> <div class="row no-gutters align-items-center"> <div class="col mr-2"> <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Maximaler Preis</div> <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMaxPrice">45,90€</div> </div> <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div> </div> </div> </div> </div> <!-- Card --> <div class="col-xl-4 col-md-4 mb-3"> <div class="card border-left-dark shadow h-100 py-2"> <div class="card-body"> <div class="row no-gutters align-items-center"> <div class="col mr-2"> <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Tage bis zur Abfahrt</div> <div class="h5 mb-0 font-weight-bold text-gray-800" id="conDaysLeft">0</div> </div> <div class="col-auto"> <i class="fas fa-calendar-alt fa-2x text-gray-300"></i> </div> </div> </div> </div> </div> <!-- Card --> <div class="col-xl-4 col-md-4 mb-3"> <div class="card border-left-dark shadow h-100 py-2"> <div class="card-body"> <div class="row no-gutters align-items-center"> <div class="col mr-2"> <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Gesammelte Datenpunkte</div> <div class="h5 mb-0 font-weight-bold text-gray-800" id="conSumPrices">10</div> </div> <div class="col-auto"> <i class="fas fa-chart-bar fa-2x text-gray-300"></i> </div> </div> </div> </div> </div> <!-- Card --> <div class="col-xl-4 col-md-4 mb-3"> <div class="card border-left-dark shadow h-100 py-2"> <div class="card-body"> <div class="row no-gutters align-items-center"> <div class="col mr-2"> <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Größter Preissprung</div> <div class="h5 mb-0 font-weight-bold text-gray-800" id="conPriceJump">43,10€</div> </div> <div class="col-auto"> <i class="fas fa-arrows-alt-v fa-2x text-gray-300"></i> </div> </div> </div> </div> </div> </div> </div>'
+  <div>
+      <div class="alert alert-danger col" role="alert">{{disclaimer}}</div>
+      <div class="row">
+          <div class="col-xl-9">
+              <!-- Chart -->
+              <div class="card shadow mb-4">
+                  <div class="card-header py-3">
+                      <h6 class="m-0 font-weight-bold text-primary" id="chart_name">{{chart_name}}</h6> </div>
+                  <div class="card-body card-nopadding">
+                      <div class="chart-area" id="bahnPriceAreachart1Top">
+                          <canvas id="bahnPriceAreachart1"></canvas>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <!-- Search beside chart -->
+          <div class="col-xl-3">
+              <div class="active-pink-3 active-pink-4 mb-4">
+                  <form class="searchForm" v-on:submit.prevent="submitSearch()">
+                      <input type="text" class="form-control" v-model="searchQuery" placeholder="Suche" @keyup="submitSearch()">
+                      <span v-show="searchQuery" class="removeInput" @click="removeSearchQuery()">+</span>
+                  </form>
+                  <ul class="list-group" id="connectionSearchResults" style="overflow-y:scroll; max-height: 45vh"> </ul>
+              </div>
+          </div>
+      </div>
+      <!-- CARDS -->
+      <div class="row" style="display: none;">
+          <div class="col row">
+              <!-- Card -->
+              <div class="col-xl-4 col-md-4 mb-3">
+                  <div class="card border-left-success shadow h-100 py-2">
+                      <div class="card-body">
+                          <div class="row no-gutters align-items-center">
+                              <div class="col mr-2">
+                                  <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Geringster Preis</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMinPrice">20,90€</div>
+                              </div>
+                              <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <!-- Card -->
+              <div class="col-xl-4 col-md-4 mb-3">
+                  <div class="card border-left-warning shadow h-100 py-2">
+                      <div class="card-body">
+                          <div class="row no-gutters align-items-center">
+                              <div class="col mr-2">
+                                  <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Durchschnittlicher Preis</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conAvrgPrice">25,90€</div>
+                              </div>
+                              <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <!-- Card -->
+              <div class="col-xl-4 col-md-4 mb-3">
+                  <div class="card border-left-primary shadow h-100 py-2">
+                      <div class="card-body">
+                          <div class="row no-gutters align-items-center">
+                              <div class="col mr-2">
+                                  <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Maximaler Preis</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMaxPrice">45,90€</div>
+                              </div>
+                              <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <!-- Card -->
+              <div class="col-xl-4 col-md-4 mb-3">
+                  <div class="card border-left-dark shadow h-100 py-2">
+                      <div class="card-body">
+                          <div class="row no-gutters align-items-center">
+                              <div class="col mr-2">
+                                  <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Tage bis zur Abfahrt</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conDaysLeft">0</div>
+                              </div>
+                              <div class="col-auto"> <i class="fas fa-calendar-alt fa-2x text-gray-300"></i> </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <!-- Card -->
+              <div class="col-xl-4 col-md-4 mb-3">
+                  <div class="card border-left-dark shadow h-100 py-2">
+                      <div class="card-body">
+                          <div class="row no-gutters align-items-center">
+                              <div class="col mr-2">
+                                  <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Gesammelte Datenpunkte</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conSumPrices">10</div>
+                              </div>
+                              <div class="col-auto"> <i class="fas fa-chart-bar fa-2x text-gray-300"></i> </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <!-- Card -->
+              <div class="col-xl-4 col-md-4 mb-3">
+                  <div class="card border-left-dark shadow h-100 py-2">
+                      <div class="card-body">
+                          <div class="row no-gutters align-items-center">
+                              <div class="col mr-2">
+                                  <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Größter Preissprung</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conPriceJump">43,10€</div>
+                              </div>
+                              <div class="col-auto"> <i class="fas fa-arrows-alt-v fa-2x text-gray-300"></i> </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>'
   </div>
 </template>
 <script>
+import axios from 'axios'
 export default {
-  name: 'test',
-  data () {
-    return {
-      msg: 'yo'
-    }
-  }
+    name: 'home',
+    computed: {
+    },
+    data () {
+        return {
+            chart_name: "Bahnpreise",
+            disclaimer: 'Diese Seite ist keine Seite der Deutschen Bahn oder eines anderen Bahn-Betreibers. Die aufgeführten Informationen sind unverbindlich und werden zu wissenschaftlichen Zwecken genutzt.',
+            searchQuery: '',
+        }
+    },
+    methods: {
+        submitSearch(){
+            console.log(this.searchQuery);
+
+            //Vue foreach needs to be added for search result list
+        },
+        removeSearchQuery: function() {
+            //Make remove button more pretty
+            this.searchQuery = '';
+        },
+    },
+    created() {
+        axios.get(this.apiUrl + '/connections/getrandomconnection').then(response => {
+            this.chart_name = response.data.data.start + " -> " +  response.data.data.end + " @ " +  response.data.data.starttime;
+        });
+    },
+
 }
 </script>
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-</style>
