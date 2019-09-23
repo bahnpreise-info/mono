@@ -1,6 +1,6 @@
 <template>
     <div id="sidebar" style="background: #d10e0e;">
-        <ul class="navbar-nav bg-gradient-primary sidebar toggled sidebar-dark accordion ml-xl-auto" id="accordionSidebar">
+        <ul class="navbar-nav bg-gradient-primary sidebar toggled sidebar-dark accordion ml-xl-auto" id="accordionSidebar" v-on:click="togglesidebar()">
 
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/#/">
@@ -72,7 +72,15 @@
     </div>
 </template>
 <script>
-export default {
-  name: 'sidebar'
-}
+    export default {
+        methods: {
+            togglesidebar: function () {
+                $("body").toggleClass("sidebar-toggled");
+                $(".sidebar").toggleClass("toggled");
+                if ($(".sidebar").hasClass("toggled")) {
+                    $('.sidebar .collapse').collapse('hide');
+                }
+            }
+        }
+    }
 </script>

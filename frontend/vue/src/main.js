@@ -21,7 +21,7 @@ Vue.mixin({
         return 'https://api.bahnpreise.info'
       },
     }
-  }
+  },
 });
 
 new Vue({
