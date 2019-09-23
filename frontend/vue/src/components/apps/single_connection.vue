@@ -16,13 +16,20 @@
           </div>
           <!-- Search beside chart -->
           <div class="col-xl-3">
-              <div class="active-pink-3 active-pink-4 mb-4">
+              <div class="col-sm-auto" style="padding-bottom: 1em">
+                  <button type="button" class="btn btn-primary btn-lg btn-block" @click="getChartData()">Zufällige Verbindung suchen</button>
+              </div>
+              <div class="col-sm-auto" style="padding-bottom: 1em">
                   <form class="searchForm" v-on:submit.prevent="submitSearch()">
                       <input type="text" class="form-control" v-model="searchQuery" placeholder="Suche" @keyup="submitSearch()">
-                      <span v-show="searchQuery" class="removeInput" @click="removeSearchQuery()">+</span>
                   </form>
-                  <ul class="list-group" id="connectionSearchResults" style="overflow-y:scroll; max-height: 45vh"> </ul>
               </div>
+              <div class="col-sm-auto" style="overflow-y:scroll; max-height: 50vh">
+                  <ul class="list-group" id="connectionSearchResults" v-for="(key, value) in searchresults">
+                      <button type="button" class="list-group-item list-group-item-action" @click="getChartData(value)">{{key}}</button>
+                  </ul>
+              </div>
+
           </div>
       </div>
       <!-- CARDS -->
@@ -117,34 +124,210 @@
   </div>
 </template>
 <script>
+function number_format(number, decimals, dec_point, thousands_sep) {
+    // *     example: number_format(1234.56, 2, ',', ' ');
+    // *     return: '1 234,56'
+    number = (number + '').replace(',', '').replace(' ', '');
+    var n = !isFinite(+number) ? 0 : +number,
+        prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+        sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+        dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+        s = '',
+        toFixedFix = function(n, prec) {
+            var k = Math.pow(10, prec);
+            return '' + Math.round(n * k) / k;
+        };
+    // Fix for IE parseFloat(0.55).toFixed(0) = 0;
+    s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+    if (s[0].length > 3) {
+        s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+    }
+    if ((s[1] || '').length < prec) {
+        s[1] = s[1] || '';
+        s[1] += new Array(prec - s[1].length + 1).join('0');
+    }
+    return s.join(dec);
+}
+
 import axios from 'axios'
 export default {
     name: 'home',
-    computed: {
-    },
-    data () {
+    computed: {},
+    data() {
         return {
             chart_name: "Bahnpreise",
             disclaimer: 'Diese Seite ist keine Seite der Deutschen Bahn oder eines anderen Bahn-Betreibers. Die aufgeführten Informationen sind unverbindlich und werden zu wissenschaftlichen Zwecken genutzt.',
             searchQuery: '',
+            searchresults: {},
         }
     },
     methods: {
-        submitSearch(){
-            console.log(this.searchQuery);
-
-            //Vue foreach needs to be added for search result list
+        submitSearch() {
+            axios.get(this.apiUrl + '/connections/getallconnections').then(response => {
+                let result = response.data;
+                this.searchresults = {};
+                for (let i = 0; i < result.data.length; i++) {
+                    let obj = result.data[i];
+                    if (typeof obj === 'undefined'){
+                        continue;
+                    }
+                    let name = obj.start + " -> " + obj.end + " @ " + obj.starttime;
+                    if (name.toLowerCase().includes(this.searchQuery.toLowerCase())){
+                        this.searchresults[obj.connection_id] = name;
+                    }
+                }
+            });
         },
-        removeSearchQuery: function() {
+        removeSearchQuery: function () {
             //Make remove button more pretty
             this.searchQuery = '';
+            this.searchresults = {};
+        },
+        getChartData: function (connection_id = null) {
+            if (connection_id === null) {
+                axios.get(this.apiUrl + '/connections/getrandomconnection').then(response => {
+                    this.data = response;
+                    this.renderChart();
+                });
+            } else {
+                let axiosparams = new URLSearchParams();
+                axiosparams.append('connection_id', connection_id);
+                axios.get(this.apiUrl + '/prices', {params: axiosparams}).then(response => {
+                    this.data = response;
+                    this.renderChart();
+                });
+            }
+        },
+        renderChart: function () {
+            // Set new default font family and font color to mimic Bootstrap's default styling
+            Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+            Chart.defaults.global.defaultFontColor = '#858796';
+
+            let dates = []; //Dates
+            let dates_detailed = []; //Dates with descriptions (e.g. "Tage vor Abfahrt")
+            let prices = []; //Price array - in same order as dates and dates_detailed
+
+            //Extract dates from key => value dict/hash
+            $.each(this.data.data.data.prices_days_to_departure, function (index, value) {
+                dates.push(index);
+            });
+            dates.sort(function (a, b) {
+                return b - a
+            });
+
+            //Finally get Descriptors and values together
+            for (var i = 0; i < dates.length; i++) {
+                dates_detailed.push(dates[i] + " Tage");
+            }
+
+            for (var i = 0; i < dates.length; i++) {
+                prices.push(this.data.data.data.prices_days_to_departure[dates[i]]);
+            }
+
+            //End of building the arrays for the chart
+            this.chart_name = this.data.data.data.start + " -> " + this.data.data.data.end + " @ " + this.data.data.data.starttime;
+
+            $("#bahnPriceAreachart1").remove();
+            $("#bahnPriceAreachart1Top").html('<canvas id="bahnPriceAreachart1"></canvas>');
+
+            //Start drawing chart
+            let ctx = document.getElementById("bahnPriceAreachart1");
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates_detailed,
+                    datasets: [{
+                        label: "Preis",
+                        lineTension: 0.3,
+                        backgroundColor: "rgba(209,14,14, 0.05)",
+                        borderColor: "#d10e0e",
+                        pointRadius: 3,
+                        pointBackgroundColor: "#d10e0e",
+                        pointBorderColor: "#d10e0e",
+                        pointHoverRadius: 3,
+                        pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+                        pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+                        pointHitRadius: 10,
+                        pointBorderWidth: 2,
+                        data: prices,
+                    }],
+                },
+                options: {
+                    elements: {
+                        line: {
+                            cubicInterpolationMode: "monotone"
+                        }
+                    },
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            left: 10,
+                            right: 25,
+                            top: 25,
+                            bottom: 0
+                        }
+                    },
+                    scales: {
+                        xAxes: [{
+                            time: {
+                                unit: 'date'
+                            },
+                            gridLines: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                maxTicksLimit: 7
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                maxTicksLimit: 5,
+                                padding: 10,
+                                // Include a dollar sign in the ticks
+                                callback: function (value, index, values) {
+                                    return '€' + number_format(value, 2);
+                                }
+                            },
+                            gridLines: {
+                                color: "rgb(234, 236, 244)",
+                                zeroLineColor: "rgb(234, 236, 244)",
+                                drawBorder: false,
+                                borderDash: [2],
+                                zeroLineBorderDash: [2]
+                            }
+                        }],
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltips: {
+                        backgroundColor: "rgb(255,255,255)",
+                        bodyFontColor: "#858796",
+                        titleMarginBottom: 10,
+                        titleFontColor: '#6e707e',
+                        titleFontSize: 14,
+                        borderColor: '#d10e0e',
+                        borderWidth: 1,
+                        xPadding: 15,
+                        yPadding: 15,
+                        displayColors: false,
+                        intersect: false,
+                        mode: 'index',
+                        caretPadding: 10,
+                        callbacks: {
+                            label: function (tooltipItem, chart) {
+                                var datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
+                                return datasetLabel + ': €' + number_format(tooltipItem.yLabel, 2);
+                            }
+                        }
+                    }
+                }
+            });
         },
     },
-    created() {
-        axios.get(this.apiUrl + '/connections/getrandomconnection').then(response => {
-            this.chart_name = response.data.data.start + " -> " +  response.data.data.end + " @ " +  response.data.data.starttime;
-        });
+    mounted() {
+        this.getChartData();
     },
-
 }
 </script>

@@ -214,8 +214,17 @@
     </div>
 </template>
 <script>
+import axios from 'axios'
 export default {
     name: 'home',
+    methods: {
+        updateStats(){
+            axios.get(this.apiUrl + '/stats').then(response => {
+                console.log(response.data);
+                this.stats = response.data;
+            });
+        },
+    },
     data () {
     return {
         stats: {
@@ -230,7 +239,7 @@ export default {
         },
     }
     },
-    created() {
+    mounted() {
         this.updateStats();
     }
 }
