@@ -19,7 +19,6 @@ oratorconfig = {
 }
 db = DatabaseManager(oratorconfig)
 db.connection().enable_query_log()
-r = redis.Redis(host='redis_db', port=6379, db=0)
 
 class Bahnpricesforconnection:
     def on_get(self, req, resp):
@@ -59,10 +58,6 @@ class Bahnpricesforconnection:
 
 class Getallconnections:
     def on_get(self, req, resp):
-        cache = r.get('all_connections')
-        if cache is not None:
-            cache = json.loads(cache)
-            resp.body = json.dumps({"status": "success", "data": cache})
         data = []
         database_connections = db.table('bahn_monitoring_connections').get()
         for connection in database_connections:
@@ -73,8 +68,6 @@ class Getallconnections:
                 "starttime": connection["starttime"].strftime("%Y-%m-%d %H:%M:%S"),
                 "endtime": connection["endtime"].strftime("%Y-%m-%d %H:%M:%S"),
             })
-        r.set('all_connections', json.dumps(data))
-        r.expire('all_connections', 60)
         resp.body = json.dumps({"status": "success", "data": data})
 
 class Getrandomconnection:
@@ -107,12 +100,6 @@ class Getrandomconnection:
 
 class Getstats:
     def on_get(self, req, resp):
-
-        cache = r.get('statistics')
-        if cache is not None:
-            cache = json.loads(cache)
-            resp.body = json.dumps({"status": "success", "cached": "true", "data": cache})
-
         data = {"status": "success", "cached": "false", "data": {}}
         # Requests in past hour
         query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)"
@@ -144,8 +131,6 @@ class Getstats:
         result = db.select(query)
         data["data"]["globalaverageprice"] = result[0]["average"]
 
-        r.set('statistics', json.dumps(data["data"]))
-        r.expire('statistics', 60)
         resp.body = json.dumps(data)
 
 api = falcon.API()
