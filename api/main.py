@@ -133,8 +133,29 @@ class Getstats:
 
         resp.body = json.dumps(data)
 
+class PricesXdaysbefore:
+    def on_get(self, req, resp):
+        days = 0
+        for key, value in req.params.items():
+            if key == "days":
+                days = value
+
+        if days == None or days == 0:
+            resp.body = "Not enough info provided"
+            return
+
+        query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as price \
+        FROM bahn_monitoring_connections \
+        INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
+        WHERE DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) = {0}".format(days)
+
+        price = db.select(query)
+        resp.body = json.dumps({"status": "success", "average": price[0]["price"]})
+
 api = falcon.API()
 api.add_route('/prices', Bahnpricesforconnection())
+api.add_route('/averageprices', PricesXdaysbefore())
+
 
 api.add_route('/connections/getallconnections', Getallconnections())
 api.add_route('/connections/getrandomconnection', Getrandomconnection())
