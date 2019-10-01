@@ -12,6 +12,11 @@
                         <br> Mail: kontakt [at] alexander [minus] ebhart [punkt] de
                         <br> Tel.: Null Eins Sieben Sechs Vier Sieben Eins Zwei Sieben Sechs Zwei Acht
                         <br>
+                        <br> Henry Brettschneider
+                        <br> Albert-Braun-Straße 9b
+                        <br> 76189 Karlsruhe
+                        <br> Mail: info [at] stored [punkt] cc
+                        <br>
                         <br> Diese Seite wurde mit großer Sorgfalt erstellt und stellt öffentlich verfügbare Daten in aufbereiteter Form zur Verfügung. Hinter dieser Dienstleistung stehen keinerlei kommerzielle Absichten. Sollten sich dennoch Fehler oder Rechtsverstöße eingeschlichen haben bitten wir um Kontaktaufnahme und bemühen uns um eine schnellstmögliche Behebung. </div>
                 </div>
             </div>
