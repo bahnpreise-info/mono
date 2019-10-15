@@ -20,10 +20,10 @@
           <div class="col-xl-3">
               <div class="row" style="padding-bottom: 1em">
                   <div class="col-sm-auto" style="width: 49%">
-                      <button type="button" class="btn btn-primary btn-sl btn-block" @click="getChartData()">Zufällige Verbindung suchen</button>
+                      <button type="button" class="btn btn-primary btn-sl btn-block" @click="getChartData()" style="background-color: #d10e0e">Zufällige Verbindung suchen</button>
                   </div>
                   <div class="col-sm-auto" style="width: 49%">
-                      <button type="button" class="btn btn-primary btn-sl btn-block" @click="copyConnectionToClipBoard()">Link zur Verbindung kopieren</button>
+                      <button type="button" class="btn btn-primary btn-sl btn-block" v-clipboard:copy="connection_url" style="background-color: #f50202">Link zur Verbindung kopieren</button>
                   </div>
               </div>
               <div class="col-sm-auto" style="padding-bottom: 1em">
@@ -157,8 +157,6 @@ function number_format(number, decimals, dec_point, thousands_sep) {
 }
 
 import axios from 'axios'
-import Vue from 'vue'
-import Router from 'vue-router'
 export default {
     name: 'home',
     computed: {},
@@ -168,7 +166,7 @@ export default {
             disclaimer: 'Diese Seite ist keine Seite der Deutschen Bahn oder eines anderen Bahn-Betreibers. Die aufgeführten Informationen sind unverbindlich und werden zu wissenschaftlichen Zwecken genutzt.',
             searchQuery: '',
             searchresults: {},
-            id: null,
+            connection_url: ""
         }
     },
     methods: {
@@ -207,15 +205,9 @@ export default {
                     this.renderChart();
                 });
             }
-            this.data.data.data.prices_days_to_departure
-        },
-        copyConnectionToClipBoard: function() {
-            console.log(this.id);
-            this.id.setAttribute('type', 'text');
-            this.id.select();
-            document.execCommand('copy');
         },
         renderChart: function () {
+            this.connection_url = "https://bahnpreise.info/#/single_connection/" + this.data.data.data.connection_id;
             // Set new default font family and font color to mimic Bootstrap's default styling
             Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
             Chart.defaults.global.defaultFontColor = '#858796';
