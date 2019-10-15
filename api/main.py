@@ -76,7 +76,8 @@ class Getrandomconnection:
         query = "SELECT id FROM bahn_monitoring_connections WHERE active = 1 ORDER BY RAND() LIMIT 1"
         result = db.select(query)
 
-        query = "SELECT bahn_monitoring_connections.start, \
+        query = "SELECT bahn_monitoring_connections.id \
+                bahn_monitoring_connections.start, \
         bahn_monitoring_connections.end, \
         bahn_monitoring_connections.starttime, \
         bahn_monitoring_prices.time as querytime, \
@@ -92,6 +93,7 @@ class Getrandomconnection:
         for price in result:
             data["start"] = price["start"]
             data["end"] = price["end"]
+            data["connection_id"] = price["id"]
             data["starttime"] = price["starttime"].strftime("%Y-%m-%d %H:%M:%S")
             data["prices_days_to_departure"].update({
                 int(price["days_to_train_departure"]): float(price["price"])
