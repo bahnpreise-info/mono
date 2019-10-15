@@ -76,7 +76,7 @@ class Getrandomconnection:
         query = "SELECT id FROM bahn_monitoring_connections WHERE active = 1 ORDER BY RAND() LIMIT 1"
         result = db.select(query)
 
-        query = "SELECT bahn_monitoring_connections.id \
+        query = "SELECT bahn_monitoring_connections.id as connection_id \
                 bahn_monitoring_connections.start, \
         bahn_monitoring_connections.end, \
         bahn_monitoring_connections.starttime, \
@@ -89,11 +89,11 @@ class Getrandomconnection:
         HAVING days_to_train_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141)".format(result[0]["id"])
         result = db.select(query)
 
-        data = {"start": "", "end": "", "starttime": "", "prices_days_to_departure": {}}
+        data = {"start": "", "end": "", "connection_id": "", "starttime": "", "prices_days_to_departure": {}}
         for price in result:
             data["start"] = price["start"]
             data["end"] = price["end"]
-            data["connection_id"] = price["id"]
+            data["connection_id"] = price["connection_id"]
             data["starttime"] = price["starttime"].strftime("%Y-%m-%d %H:%M:%S")
             data["prices_days_to_departure"].update({
                 int(price["days_to_train_departure"]): float(price["price"])
