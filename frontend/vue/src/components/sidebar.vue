@@ -1,6 +1,6 @@
 <template>
     <div id="sidebar" style="background: #d10e0e;">
-        <ul class="navbar-nav bg-gradient-primary sidebar toggled sidebar-dark accordion ml-xl-auto" id="accordionSidebar" v-on:click="togglesidebar()">
+        <ul class="navbar-nav bg-gradient-primary sidebar toggled sidebar-dark accordion ml-xl-auto" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/#/">
@@ -65,7 +65,7 @@
 
             <!-- Sidebar Toggler (Sidebar) -->
             <div class="text-center d-none d-md-inline">
-                <button class="rounded-circle border-0" id="sidebarToggle"></button>
+                <button class="rounded-circle border-0" id="sidebarToggle" v-on:click="togglesidebar()"></button>
             </div>
 
         </ul>
