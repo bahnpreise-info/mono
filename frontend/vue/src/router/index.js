@@ -17,7 +17,14 @@ export default new Router({
     {
       path: '/single_connection',
       name: '/single_connection',
-      component: single_connection
+      component: single_connection,
+      children: [
+        {
+          path: ':id',
+          name: 'id',
+          component: single_connection
+        }
+      ]
     },
     {
       path: '/faq',
