@@ -76,7 +76,7 @@ class Getrandomconnection:
         query = "SELECT id FROM bahn_monitoring_connections WHERE active = 1 ORDER BY RAND() LIMIT 1"
         result = db.select(query)
 
-        query = "SELECT bahn_monitoring_connections.id  \
+        query = "SELECT bahn_monitoring_connections.id \
                 bahn_monitoring_connections.start, \
         bahn_monitoring_connections.end, \
         bahn_monitoring_connections.starttime, \
