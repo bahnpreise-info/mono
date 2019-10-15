@@ -2,6 +2,7 @@
 import time, falcon, json, datetime, redis
 from configparser import ConfigParser
 from orator import DatabaseManager
+from datetime import timedelta
 
 #Read mysql config
 mysqlconfig = ConfigParser()
@@ -19,6 +20,7 @@ oratorconfig = {
 }
 db = DatabaseManager(oratorconfig)
 db.connection().enable_query_log()
+r = redis.Redis(host="redis")
 
 class Bahnpricesforconnection:
     def on_get(self, req, resp):
@@ -58,16 +60,23 @@ class Bahnpricesforconnection:
 
 class Getallconnections:
     def on_get(self, req, resp):
-        data = []
-        database_connections = db.table('bahn_monitoring_connections').get()
-        for connection in database_connections:
-            data.append({
-                "connection_id": connection["id"],
-                "start": connection["start"],
-                "end": connection["end"],
-                "starttime": connection["starttime"].strftime("%Y-%m-%d %H:%M:%S"),
-                "endtime": connection["endtime"].strftime("%Y-%m-%d %H:%M:%S"),
-            })
+        redis_cache = r.get("all_connections")
+        if redis_cache is None:
+            data = []
+            database_connections = db.table('bahn_monitoring_connections').get()
+            for connection in database_connections:
+                data.append({
+                    "connection_id": connection["id"],
+                    "start": connection["start"],
+                    "end": connection["end"],
+                    "starttime": connection["starttime"].strftime("%Y-%m-%d %H:%M:%S"),
+                    "endtime": connection["endtime"].strftime("%Y-%m-%d %H:%M:%S"),
+                })
+            #Set redis cache
+            r.setex("all_connections", timedelta(minutes=5), value=json.dumps(data))
+        else:
+            print("Using redis cache to serve request")
+            data = json.loads(redis_cache)
         resp.body = json.dumps({"status": "success", "data": data})
 
 class Getrandomconnection:
@@ -102,37 +111,87 @@ class Getrandomconnection:
 
 class Getstats:
     def on_get(self, req, resp):
-        data = {"status": "success", "cached": "false", "data": {}}
-        # Requests in past hour
-        query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)"
-        result = db.select(query)
-        data["data"]["hourlyrequests"] = len(result)
+        data = {"status": "success", "data": {}}
 
-        #Requests within the last day
-        query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 DAY)"
-        result = db.select(query)
-        data["data"]["dailyrequests"] = len(result)
+        redis_cache = r.get("stats_data")
+        if redis_cache is None:
+            print("Getting stats from database")
+            # Requests in past hour
+            query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)"
+            result = db.select(query)
+            data["data"]["hourlyrequests"] = len(result)
 
-        #Get station count
-        query = "SELECT * FROM bahn_monitoring_stations"
-        result = db.select(query)
-        data["data"]["stationcount"] = len(result)
+            #Requests within the last day
+            query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 DAY)"
+            result = db.select(query)
+            data["data"]["dailyrequests"] = len(result)
 
-        #Get connection count
-        query = "SELECT * FROM bahn_monitoring_connections"
-        result = db.select(query)
-        data["data"]["connections"] = len(result)
+            #Get station count
+            query = "SELECT * FROM bahn_monitoring_stations"
+            result = db.select(query)
+            data["data"]["stationcount"] = len(result)
 
-        #Get active connection count
-        query = "SELECT * FROM bahn_monitoring_connections WHERE active = 1"
-        result = db.select(query)
-        data["data"]["activeconnections"] = len(result)
+            #Get connection count
+            query = "SELECT * FROM bahn_monitoring_connections"
+            result = db.select(query)
+            data["data"]["connections"] = len(result)
 
-        #Get average price
-        query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as average FROM bahn_monitoring_connections INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id)"
-        result = db.select(query)
-        data["data"]["globalaverageprice"] = result[0]["average"]
+            #Get active connection count
+            query = "SELECT * FROM bahn_monitoring_connections WHERE active = 1"
+            result = db.select(query)
+            data["data"]["activeconnections"] = len(result)
 
+            #Get average price
+            query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as average FROM bahn_monitoring_connections INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id)"
+            result = db.select(query)
+            data["data"]["globalaverageprice"] = result[0]["average"]
+
+
+            #Get minimum and maximum prices for each days before departure
+            days_to_prices = {}
+            days_to_minimum_prices = {}
+            days_to_maximum_prices = {}
+            query = "SELECT bahn_monitoring_prices.price, DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure FROM bahn_monitoring_prices INNER JOIN bahn_monitoring_connections ON (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) WHERE bahn_monitoring_prices.price > 0"
+            result = db.select(query)
+            for price in result:
+                if not price["days_to_train_departure"] in days_to_prices:
+                    days_to_prices[price["days_to_train_departure"]] = []
+                days_to_prices[price["days_to_train_departure"]].append(price["price"])
+
+            for day, prices in days_to_prices.iteritems():
+                threshold = 19
+                minimum = 300.0
+                maximum = 0.0
+                for price in prices:
+                    if float(price) < float(minimum) and float(price) > threshold:
+                        minimum = price
+                    if float(price) > float(maximum) and float(price) > threshold:
+                        maximum = price
+                days_to_minimum_prices[day] = minimum
+                days_to_maximum_prices[day] = maximum
+            data["data"]["days_to_average_prices"] = {}
+            data["data"]["days_to_average_prices"]["minimum"] = days_to_minimum_prices
+            data["data"]["days_to_average_prices"]["maximum"] = days_to_maximum_prices
+
+            #Get average price per weekday
+            data["data"]["prices_to_weekdays"] = {}
+            data["data"]["prices_to_weekdays_stdev"] = {}
+            map = {0 : "monday", 1 : "tuesday", 2 : "wednesday", 3 : "thursday", 4 : "friday", 5 : "saturday", 6 : "sunday"}
+            query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as average, WEEKDAY(bahn_monitoring_prices.time) AS weekday from bahn_monitoring_prices GROUP by weekday"
+            results = db.select(query)
+            for result in results:
+                data["data"]["prices_to_weekdays"][map[result["weekday"]]] = result["average"]
+
+            #Get standard deviation price per weekday
+            query = "SELECT ROUND(STD(bahn_monitoring_prices.price), 2) as average, WEEKDAY(bahn_monitoring_prices.time) AS weekday from bahn_monitoring_prices GROUP by weekday"
+            results = db.select(query)
+            for result in results:
+                data["data"]["prices_to_weekdays_stdev"][map[result["weekday"]]] = result["average"]
+
+            r.setex("stats_data", timedelta(minutes=5), value=json.dumps(data["data"]))
+        else:
+            print("Using redis cache to serve request")
+            data["data"] = json.loads(redis_cache)
         resp.body = json.dumps(data)
 
 class PricesXdaysbefore:
