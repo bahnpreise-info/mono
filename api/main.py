@@ -24,6 +24,9 @@ r = redis.Redis(host="redis")
 
 class Bahnpricesforconnection:
     def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
         id = 0
         for key, value in req.params.items():
             if key == "connection_id":
@@ -60,6 +63,9 @@ class Bahnpricesforconnection:
 
 class Getallconnections:
     def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
         redis_cache = r.get("all_connections")
         if redis_cache is None:
             data = []
@@ -81,6 +87,9 @@ class Getallconnections:
 
 class Getrandomconnection:
     def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
         #Get random id
         query = "SELECT id FROM bahn_monitoring_connections WHERE active = 1 ORDER BY RAND() LIMIT 1"
         result = db.select(query)
@@ -111,6 +120,9 @@ class Getrandomconnection:
 
 class Getstats:
     def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
         data = {"status": "success", "data": {}}
 
         redis_cache = r.get("stats_data")
@@ -196,6 +208,9 @@ class Getstats:
 
 class PricesXdaysbefore:
     def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
         days = 0
         for key, value in req.params.items():
             if key == "days":
