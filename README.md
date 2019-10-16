@@ -48,7 +48,7 @@ pip install gunicorn falcon orator redis
 
 Also, the API needs to connect to the same database as the sheduler backend. You should have the mysql database set up at this point, so you can simply instert the host/username/database/password into the `mysql.ini` config file in the config folder.
 
-## Please also note that you will need a redis database connected to the api. You can configure the hostname in the main.py directly.
+#### Please also note that you will need a redis database connected to the api. You can configure the hostname in the main.py directly.
 
 After that, the api can be started with the command provided in the startapi.sh:
 `gunicorn --workers 4 -b 0.0.0.0:8080 main:api -b [::1]:8080 --reload`
