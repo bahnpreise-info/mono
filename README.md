@@ -43,10 +43,12 @@ In the frontend folder you will find a simple HTML/Javascript only application w
 In the `api` folder you will find a python/falcon application which needs the following packages installed via apt / pip:
 ```
 apt-get update && apt-get install python python-pip python-mysqldb -y
-pip install gunicorn falcon orator
+pip install gunicorn falcon orator redis
 ```
 
 Also, the API needs to connect to the same database as the sheduler backend. You should have the mysql database set up at this point, so you can simply instert the host/username/database/password into the `mysql.ini` config file in the config folder.
+
+#### Please also note that you will need a redis database connected to the api. You can configure the hostname in the main.py directly.
 
 After that, the api can be started with the command provided in the startapi.sh:
 `gunicorn --workers 4 -b 0.0.0.0:8080 main:api -b [::1]:8080 --reload`
