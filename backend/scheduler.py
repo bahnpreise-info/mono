@@ -1,8 +1,21 @@
 from includes import mysql
 import datetime, os, schiene, random, configparser, logging, time, pytz
 from orator import DatabaseManager
-from multiprocessing import Pool, Lock
 os.chdir("/opt/app") #change this according to your needs - working directory
+
+config = configparser.ConfigParser()
+config.read_file(open('database.ini'))
+oratorconfig = {
+    'scheduler': {
+        'driver': 'mysql',
+        'host':  config.get('database', 'host'),
+        'database': config.get('database', 'database'),
+        'user': config.get('database', 'user'),
+        'password': config.get('database', 'password'),
+        'prefix': config.get('database', 'database_prefix'),
+    }
+}
+oratorDB = DatabaseManager(oratorconfig)
 
 class Scheduler():
 
@@ -40,14 +53,14 @@ class Scheduler():
     def setupDatabase(self):
         try:
             config = configparser.ConfigParser()
-            config.readfp(open('connectionmanager.ini'))
+            config.read_file(open('database.ini'))
             host = config.get('database', 'host')
             database = config.get('database', 'database')
             user = config.get('database', 'user')
             password = config.get('database', 'password')
             self.databasePrefix = config.get('database', 'database_prefix')
         except Exception as e:
-            self.logger.error("Could not fetch connectionmanager.ini: %s", e)
+            self.logger.error("Could not fetch database.ini: %s", e)
             return False
 
         self.conDatabase = mysql.Database(host, database, user, password, self.logger)
@@ -68,10 +81,7 @@ class Scheduler():
             return False
 
     def checkConnections(self):
-        self.conDatabase.connect()
-        connections = self.conDatabase.selectFrom(self.databasePrefix+"connections", 'id, start, end, starttime, endtime', 'active = 1 AND next_scrape < "'+datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")+'"')
-        self.conDatabase.close()
-
+        connections = oratorDB.table('bahn_monitoring_connections').where('active', '1').where('next_scrape', '<', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")).get()
         self.logger.debug("Connections to process: {}".format(connections))
 
         if connections != False:
@@ -161,21 +171,8 @@ class Scheduler():
     def deleteconnection(self, id):
         self.logger.debug("Deleting connection with ID {}".format(id))
         try:
-            config = configparser.ConfigParser()
-            config.readfp(open('connectionmanager.ini'))
-            oratorconfig = {
-                'scheduler': {
-                    'driver': 'mysql',
-                    'host':  config.get('database', 'host'),
-                    'database': config.get('database', 'database'),
-                    'user': config.get('database', 'user'),
-                    'password': config.get('database', 'password'),
-                    'prefix': config.get('database', 'database_prefix'),
-                }
-            }
-            db = DatabaseManager(oratorconfig)
-            db.table('bahn_monitoring_connections').where('id', '=', id).delete()
-            db.table('bahn_monitoring_prices').where('connection_id', '=', id).delete()
+            oratorDB.table('bahn_monitoring_connections').where('id', '=', id).delete()
+            oratorDB.table('bahn_monitoring_prices').where('connection_id', '=', id).delete()
         except:
             return False
 

@@ -39,14 +39,14 @@ class ConnectionManager():
     def setupDatabase(self):
         try:
             config = configparser.ConfigParser()
-            config.readfp(open('connectionmanager.ini'))
+            config.readfp(open('database.ini'))
             host = config.get('database', 'host')
             database = config.get('database', 'database')
             user = config.get('database', 'user')
             password = config.get('database', 'password')
             self.databasePrefix = config.get('database', 'database_prefix')
         except Exception as e:
-            self.logger.error("Could not fetch connectionmanager.ini: %s", e)
+            self.logger.error("Could not fetch database.ini: %s", e)
             return False
 
         self.conDatabase = mysql.Database(host, database, user, password, self.logger)
