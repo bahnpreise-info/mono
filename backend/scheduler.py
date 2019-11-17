@@ -108,10 +108,10 @@ class Scheduler():
                 elif timedelta > 10:  #if 10-30 hours: next scrape in 8-10 hours
                     randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(8, 9), minutes=random.randint(0,59))
                     self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
-                elif timedelta > 5:  #if 5-10 hours: next scrape in 2 hours
-                    randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=2)
+                elif timedelta >= 2:  #if 2-10 hours: next scrape in 2 hours
+                    randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=1, minutes=50)
                     self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
-                elif timedelta < 1:  #if less then 1 hours: set connection to inactive
+                elif timedelta < 2:  #if less then 2 hours: set connection to inactive
                     self.conDatabase.update([['active', 0]], self.databasePrefix+"connections", "id = "+str(c["id"]))
 
                 if self.conDatabase.insertInto(self.databasePrefix+"prices", [['price', connection['price']], ['connection_id', c["id"]]]):
