@@ -1,7 +1,8 @@
 from includes import mysql
 import datetime, os, schiene, random, configparser, logging, time, pytz
 from orator import DatabaseManager
-os.chdir("/opt/app") #change this according to your needs - working directory
+
+#os.chdir("/opt/app") #change this according to your needs - working directory
 
 config = configparser.ConfigParser()
 config.read_file(open('database.ini'))
@@ -18,7 +19,6 @@ oratorconfig = {
 oratorDB = DatabaseManager(oratorconfig)
 
 class Scheduler():
-
     def __init__(self):
         self.status = {}    #saves the status (true/false) of important jobs
         self.status['logger'] = self.setupLogger()
@@ -37,7 +37,7 @@ class Scheduler():
     def setupLogger(self):
         try:
             self.logger = logging.getLogger('Scheduler')
-            self.logger.setLevel(logging.INFO)
+            self.logger.setLevel(logging.DEBUG)
             self.ch = logging.StreamHandler()
             self.ch.setLevel(logging.DEBUG)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -175,7 +175,3 @@ class Scheduler():
             oratorDB.table('bahn_monitoring_prices').where('connection_id', '=', id).delete()
         except:
             return False
-
-while True:
-  Scheduler()
-  time.sleep(10)

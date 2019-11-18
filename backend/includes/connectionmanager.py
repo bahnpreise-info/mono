@@ -1,13 +1,9 @@
 from includes import mysql
 import configparser, os, logging, schiene, random, datetime, time, pytz
 
-#os.chdir("/opt/app")
-os.chdir("/opt/app") #change this according to your needs - working directory
-
 class ConnectionManager():
-
-    def __init__(self, maxActiveConnections):
-        self.maxActiveConnections = maxActiveConnections
+    def __init__(self):
+        self.maxActiveConnections = 4000
         self.status = {}    #saves the status (true/false) of important jobs
         self.status['logger'] = self.setupLogger()
 
@@ -23,9 +19,9 @@ class ConnectionManager():
     def setupLogger(self):
         try:
             self.logger = logging.getLogger('Connectionmanager')
-            self.logger.setLevel(logging.INFO)
+            self.logger.setLevel(logging.DEBUG)
             self.ch = logging.StreamHandler()
-            self.ch.setLevel(logging.INFO)
+            self.ch.setLevel(logging.DEBUG)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             self.ch.setFormatter(formatter)
             self.logger.addHandler(self.ch)
@@ -175,7 +171,3 @@ class ConnectionManager():
             return starttime+datetime.timedelta(hours=int(dur[0]), minutes=int(dur[1]))
         except:
             return False
-
-while True:
-    ConnectionManager(4000)
-    time.sleep(300)
