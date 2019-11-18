@@ -17,7 +17,7 @@ oratorconfig = {
     }
 }
 db = DatabaseManager(oratorconfig)
-r = redis.Redis(host="localhost")
+r = redis.Redis(host="redis")
 
 class StatisticsCalculator():
     def __init__(self):
