@@ -13,8 +13,10 @@ class ConnectionManager():
             print("FATAL ERROR: Could not setup a logger. Stopped execution.")
             self.status['database'] = False
 
-        if self.status['logger'] == True and self.status['database'] == True:
-            self.setConnections()
+        while True:
+            if self.status['logger'] == True and self.status['database'] == True:
+                self.setConnections()
+            time.sleep(60)
 
     def setupLogger(self):
         try:
