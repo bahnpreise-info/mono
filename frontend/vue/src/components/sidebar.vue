@@ -35,9 +35,9 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link">
+                <a class="nav-link" href="/#/tracks">
                     <i class="fas fa-fw fa-arrows-alt-h"></i>
-                    <span>Strecken (kommt bald)</span></a>
+                    <span>Strecken</span></a>
             </li>
 
             <li class="nav-item">

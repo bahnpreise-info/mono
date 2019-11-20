@@ -5,6 +5,7 @@ import home from '@/components/apps/home'
 import faq from '@/components/apps/faq'
 import imprint from '@/components/apps/imprint'
 import single_connection from '@/components/apps/single_connection'
+import tracks from '@/components/apps/tracks'
 
 Vue.use(Router);
 Vue.use(VueClipboard);
@@ -25,6 +26,18 @@ export default new Router({
           path: ':id',
           name: 'id',
           component: single_connection
+        }
+      ]
+    },
+    {
+      path: '/tracks',
+      name: '/tracks',
+      component: tracks,
+      children: [
+        {
+          path: ':startendslug',
+          name: 'startendslug',
+          component: tracks
         }
       ]
     },
