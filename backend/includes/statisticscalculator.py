@@ -37,8 +37,8 @@ class StatisticsCalculator():
 
     def setupLogger(self):
         try:
-            self.logger = logging.getLogger('Scheduler')
-            self.logger.setLevel(logging.INFO)
+            self.logger = logging.getLogger('StatisticsCalculator')
+            self.logger.setLevel(logging.DEBUG)
             self.ch = logging.StreamHandler()
             self.ch.setLevel(logging.DEBUG)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

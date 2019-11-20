@@ -1,4 +1,6 @@
 #!/usr/bin/python
+#encoding: utf-8
+
 import time, falcon, json, datetime, redis
 from configparser import ConfigParser
 from orator import DatabaseManager
@@ -85,6 +87,83 @@ class Getallconnections:
             data = json.loads(redis_cache)
         resp.body = json.dumps({"status": "success", "data": data})
 
+class Getalltracks:
+    def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
+        redis_cache = r.get("all_tracks")
+        if redis_cache is None:
+            data = []
+            query = "SELECT DISTINCT start, end FROM bahn_monitoring_connections"
+            result = db.select(query)
+            for track in result:
+                data.append({
+                    "start": track["start"],
+                    "end": track["end"],
+                })
+            #Set redis cache
+            r.setex("all_tracks", timedelta(minutes=5), value=json.dumps(data))
+        else:
+            print("Using redis cache to serve request")
+            data = json.loads(redis_cache)
+        resp.body = json.dumps({"status": "success", "data": data})
+
+class Gettrackprice:
+    def on_get(self, req, resp):
+        resp.set_header('Access-Control-Allow-Origin', '*')
+        resp.set_header('Access-Control-Allow-Methods', 'GET')
+        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
+
+        #Gather start and end station from request parameters
+        start = None
+        end = None
+        for key, value in req.params.items():
+            if key == "start":
+                start = value.encode('utf-8')
+            if key == "end":
+                end = value.encode('utf-8')
+        if start is None or end is None:
+            resp.body = json.dumps({"status": "error", "data": {}})
+            return
+
+        #The combination is possibly cached in redis
+        cache="trackprice_{0}_{1}".format(start, end)
+        redis_cache = r.get(cache)
+        if redis_cache is not None:
+            print("Using redis cache to serve request")
+            resp.body = json.dumps({"status": "success", "data": json.loads(redis_cache)})
+            return
+
+        query = "SELECT \
+            bahn_monitoring_connections.id, \
+            bahn_monitoring_connections.start, \
+            bahn_monitoring_connections.end, \
+            bahn_monitoring_prices.price, \
+            DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
+            FROM `bahn_monitoring_connections` \
+            INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
+            WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}'".format(start, end)
+        result = db.select(query)
+
+        days_with_prices = {}
+        for price in result:
+            current_days_to_train_departure = price["days_to_train_departure"]
+            if not current_days_to_train_departure in days_with_prices:
+                days_with_prices[current_days_to_train_departure] = []
+            days_with_prices[current_days_to_train_departure].append(price["price"])
+
+        data = {}
+        for day, prices in days_with_prices.iteritems():
+            sum=0
+            for price in prices:
+                sum = sum + float(price)
+            data[day] = round(sum / len(prices), 2)
+
+        #Set redis cache for 30 minutes
+        r.setex(cache, timedelta(minutes=30), value=json.dumps(data))
+        resp.body = json.dumps({"status": "success", "data": data})
+
 class Getrandomconnection:
     def on_get(self, req, resp):
         resp.set_header('Access-Control-Allow-Origin', '*')
@@ -127,80 +206,7 @@ class Getstats:
 
         redis_cache = r.get("stats_data")
         if redis_cache is None:
-            print("Getting stats from database")
-            # Requests in past hour
-            query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)"
-            result = db.select(query)
-            data["data"]["hourlyrequests"] = len(result)
-
-            #Requests within the last day
-            query = "SELECT * FROM bahn_monitoring_prices WHERE bahn_monitoring_prices.time >= DATE_SUB(NOW(), INTERVAL 1 DAY)"
-            result = db.select(query)
-            data["data"]["dailyrequests"] = len(result)
-
-            #Get station count
-            query = "SELECT * FROM bahn_monitoring_stations"
-            result = db.select(query)
-            data["data"]["stationcount"] = len(result)
-
-            #Get connection count
-            query = "SELECT * FROM bahn_monitoring_connections"
-            result = db.select(query)
-            data["data"]["connections"] = len(result)
-
-            #Get active connection count
-            query = "SELECT * FROM bahn_monitoring_connections WHERE active = 1"
-            result = db.select(query)
-            data["data"]["activeconnections"] = len(result)
-
-            #Get average price
-            query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as average FROM bahn_monitoring_connections INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id)"
-            result = db.select(query)
-            data["data"]["globalaverageprice"] = result[0]["average"]
-
-
-            #Get minimum and maximum prices for each days before departure
-            days_to_prices = {}
-            days_to_minimum_prices = {}
-            days_to_maximum_prices = {}
-            query = "SELECT bahn_monitoring_prices.price, DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure FROM bahn_monitoring_prices INNER JOIN bahn_monitoring_connections ON (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) WHERE bahn_monitoring_prices.price > 0"
-            result = db.select(query)
-            for price in result:
-                if not price["days_to_train_departure"] in days_to_prices:
-                    days_to_prices[price["days_to_train_departure"]] = []
-                days_to_prices[price["days_to_train_departure"]].append(price["price"])
-
-            for day, prices in days_to_prices.iteritems():
-                threshold = 19
-                minimum = 300.0
-                maximum = 0.0
-                for price in prices:
-                    if float(price) < float(minimum) and float(price) > threshold:
-                        minimum = price
-                    if float(price) > float(maximum) and float(price) > threshold:
-                        maximum = price
-                days_to_minimum_prices[day] = minimum
-                days_to_maximum_prices[day] = maximum
-            data["data"]["days_to_average_prices"] = {}
-            data["data"]["days_to_average_prices"]["minimum"] = days_to_minimum_prices
-            data["data"]["days_to_average_prices"]["maximum"] = days_to_maximum_prices
-
-            #Get average price per weekday
-            data["data"]["prices_to_weekdays"] = {}
-            data["data"]["prices_to_weekdays_stdev"] = {}
-            map = {0 : "monday", 1 : "tuesday", 2 : "wednesday", 3 : "thursday", 4 : "friday", 5 : "saturday", 6 : "sunday"}
-            query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as average, WEEKDAY(bahn_monitoring_prices.time) AS weekday from bahn_monitoring_prices GROUP by weekday"
-            results = db.select(query)
-            for result in results:
-                data["data"]["prices_to_weekdays"][map[result["weekday"]]] = result["average"]
-
-            #Get standard deviation price per weekday
-            query = "SELECT ROUND(STD(bahn_monitoring_prices.price), 2) as average, WEEKDAY(bahn_monitoring_prices.time) AS weekday from bahn_monitoring_prices GROUP by weekday"
-            results = db.select(query)
-            for result in results:
-                data["data"]["prices_to_weekdays_stdev"][map[result["weekday"]]] = result["average"]
-
-            r.setex("stats_data", timedelta(minutes=5), value=json.dumps(data["data"]))
+            data = {"status": "error_no_redis_data", "data": {}}
         else:
             print("Using redis cache to serve request")
             data["data"] = json.loads(redis_cache)
@@ -216,7 +222,7 @@ class PricesXdaysbefore:
             if key == "days":
                 days = value
 
-        if days == None or days == 0:
+        if days is None or days == 0:
             resp.body = "Not enough info provided"
             return
 
@@ -234,6 +240,8 @@ api.add_route('/averageprices', PricesXdaysbefore())
 
 
 api.add_route('/connections/getallconnections', Getallconnections())
+api.add_route('/connections/getalltracks', Getalltracks())
+api.add_route('/connections/getaveragetrackprice', Gettrackprice())
 api.add_route('/connections/getrandomconnection', Getrandomconnection())
 
 api.add_route('/stats', Getstats())
