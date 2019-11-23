@@ -118,7 +118,7 @@ class StatisticsCalculator():
 
             stdDev = 0
             for price in prices:
-                stdDev += math.sqrt(math.pow((sum_/i)-price, 2))
+                stdDev += math.sqrt(math.pow((sum_/i)-float(price), 2))
             days_to_deviation_prices[day] = stdDev
 
         data["days_to_average_prices"] = {}
