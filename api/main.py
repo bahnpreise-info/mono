@@ -234,9 +234,10 @@ class PricesXdaysbefore:
         price = db.select(query)
         resp.body = json.dumps({"status": "success", "average": price[0]["price"]})
 
+
 api = falcon.API()
 api.add_route('/prices', Bahnpricesforconnection())
-api.add_route('/averageprices', PricesXdaysbefore())
+api.add_route('stats/averageprices', PricesXdaysbefore())
 
 
 api.add_route('/connections/getallconnections', Getallconnections())

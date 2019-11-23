@@ -99,16 +99,22 @@ class StatisticsCalculator():
             threshold = 19
             minimum = 300.0
             maximum = 0.0
+            sum_ = 0
+            i = 0
             for price in prices:
+                i += 1
+                sum_ += float(price)
                 if float(price) < float(minimum) and float(price) > threshold:
                     minimum = price
                 if float(price) > float(maximum) and float(price) > threshold:
                     maximum = price
             days_to_minimum_prices[day] = minimum
             days_to_maximum_prices[day] = maximum
+            days_to_average_prices[day] = sum_/i
         data["days_to_average_prices"] = {}
-        data["days_to_average_prices"]["minimum"] = days_to_minimum_prices
-        data["days_to_average_prices"]["maximum"] = days_to_maximum_prices
+        data["days_to_minimum_prices"] = days_to_minimum_prices
+        data["days_to_maximum_prices"] = days_to_maximum_prices
+        data["days_to_average_prices"] = days_to_average_prices
 
         self.logger.debug("Getting average price per weekday")
         data["prices_to_weekdays"] = {}
@@ -124,6 +130,8 @@ class StatisticsCalculator():
         results = db.select(query)
         for result in results:
             data["prices_to_weekdays_stdev"][map[result["weekday"]]] = result["average"]
+
+        
 
 
         r.setex("stats_data", datetime.timedelta(minutes=5), value=json.dumps(data))
