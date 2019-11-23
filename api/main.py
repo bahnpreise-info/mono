@@ -237,7 +237,8 @@ class PricesXdaysbefore:
 
 api = falcon.API()
 api.add_route('/prices', Bahnpricesforconnection())
-api.add_route('stats/averageprices', PricesXdaysbefore())
+api.add_route('/stats', Getstats())
+api.add_route('/stats/averageprices', PricesXdaysbefore())
 
 
 api.add_route('/connections/getallconnections', Getallconnections())
@@ -245,4 +246,4 @@ api.add_route('/connections/getalltracks', Getalltracks())
 api.add_route('/connections/getaveragetrackprice', Gettrackprice())
 api.add_route('/connections/getrandomconnection', Getrandomconnection())
 
-api.add_route('/stats', Getstats())
+
