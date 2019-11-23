@@ -120,7 +120,7 @@ class StatisticsCalculator():
             i = 0
             for price in prices:
                 i += 1
-                stdDev += math.pow((sum_/i)-float(price), 2)
+                stdDev += math.pow(days_to_average_prices[day]-float(price), 2)
             days_to_deviation_prices[day] = round(math.sqrt(stdDev/i), 2)
 
         data["days_to_average_prices"] = {}
