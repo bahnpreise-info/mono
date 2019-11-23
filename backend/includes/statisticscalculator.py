@@ -114,12 +114,14 @@ class StatisticsCalculator():
                     maximum = price
             days_to_minimum_prices[day] = minimum
             days_to_maximum_prices[day] = maximum
-            days_to_average_prices[day] = sum_/i
+            days_to_average_prices[day] = round(sum_/i, 2)
 
             stdDev = 0
+            i = 0
             for price in prices:
-                stdDev += math.sqrt(math.pow((sum_/i)-float(price), 2))
-            days_to_deviation_prices[day] = stdDev
+                i += 1
+                stdDev += math.pow((sum_/i)-float(price), 2)
+            days_to_deviation_prices[day] = round(math.sqrt(stdDev/i), 2)
 
         data["days_to_average_prices"] = {}
         data["days_to_minimum_prices"] = days_to_minimum_prices
