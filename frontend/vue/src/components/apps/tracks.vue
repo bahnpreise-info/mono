@@ -208,7 +208,7 @@ export default {
         },
         renderChart: function () {
             //When drawing a new chart we want to set the proper url to copy
-            this.track_url = "https://bahnpreise.info/#/tracks/" + this.start + "+" + this.end;
+            this.track_url = encodeURI("https://bahnpreise.info/#/tracks/" + this.start + "+" + this.end);
 
             // Set new default font family and font color to mimic Bootstrap's default styling
             Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
