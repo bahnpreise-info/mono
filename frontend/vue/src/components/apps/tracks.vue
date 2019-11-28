@@ -99,7 +99,7 @@
                   </div>
               </div>
               <!-- Card -->
-              <div class="col-xl-4 col-md-4 mb-3">
+              <div class="col-xl-4 col-md-4 mb-3" style="visibility: hidden">
                   <div class="card border-left-dark shadow h-100 py-2">
                       <div class="card-body">
                           <div class="row no-gutters align-items-center">
