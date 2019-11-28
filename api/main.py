@@ -140,29 +140,47 @@ class Gettrackprice:
             bahn_monitoring_connections.start, \
             bahn_monitoring_connections.end, \
             bahn_monitoring_prices.price, \
+            bahn_monitoring_prices.time, \
             DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
-            FROM `bahn_monitoring_connections` \
+            FROM bahn_monitoring_connections \
             INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-            WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}'".format(start, end)
+            WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}'\
+            ORDER BY bahn_monitoring_prices.time ASC".format(start, end)
         result = db.select(query)
 
+        if result is None:
+            resp.body = json.dumps({"status": "error", "data": {}})
+            return
+
+        threshold = 19
+        minimum = 300.0
+        maximum = 0.0
+        lastprice = 0.0
+        sum_prices = 0
+        maximumpricejump_up = 0.0
         days_with_prices = {}
         for price in result:
+            if float(price["price"]) == float(0):
+                continue
             current_days_to_train_departure = price["days_to_train_departure"]
             if not current_days_to_train_departure in days_with_prices:
                 days_with_prices[current_days_to_train_departure] = []
             days_with_prices[current_days_to_train_departure].append(price["price"])
 
-        threshold = 19
-        minimum = 300.0
-        maximum = 0.0
-        for price in result:
             if float(price["price"]) < float(minimum) and float(price["price"]) > threshold:
                 minimum = price["price"]
             if float(price["price"]) > float(maximum) and float(price["price"]) > threshold:
                 maximum = price["price"]
 
-        data = {"days_with_prices": {}, "minimum": minimum, "maximum": maximum}
+            if float(price["price"]) > lastprice and float(price["price"]) - lastprice > maximumpricejump_up:
+                print lastprice
+                print price
+                maximumpricejump_up = float(price["price"]) - lastprice
+
+            lastprice = float(price["price"])
+            sum_prices = sum_prices + float(price["price"])
+
+        data = {"days_with_prices": {}, "minimum": float(minimum), "maximum": float(maximum), "average": float(round(sum_prices / len(result), 2)), "datapoints": len(result), "maximumpricejump_up": float(maximumpricejump_up)}
         for day, prices in days_with_prices.iteritems():
             sum=0
             for price in prices:
