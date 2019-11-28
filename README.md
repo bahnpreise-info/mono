@@ -2,6 +2,8 @@
 
 **Beta-Version**
 
+Watch for updates here: [Blog](https://blog.cubicroot.xyz)
+
 Bahnpreise.info ist ein Tool, dass die Entwicklung von Ticketpreisen des Bahnverkehrs beobachtet und grafisch aufbereitet.
 
 Unter [www.bahnpreise.info](https://bahnpreise.info) ist die Instanz der Entwickler [storedcc](https://stored.cc) und [cubicrootxyz](https://cubicroot.xyz) nutzbar.

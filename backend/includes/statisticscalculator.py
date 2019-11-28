@@ -1,5 +1,5 @@
 from includes import mysql
-import datetime, configparser, logging, time, pytz, redis, json
+import datetime, configparser, logging, time, pytz, redis, json, math
 from orator import DatabaseManager
 
 #os.chdir("/opt/app") #change this according to your needs - working directory
@@ -88,6 +88,8 @@ class StatisticsCalculator():
         days_to_prices = {}
         days_to_minimum_prices = {}
         days_to_maximum_prices = {}
+        days_to_average_prices = {}
+        days_to_deviation_prices = {}
         query = "SELECT bahn_monitoring_prices.price, DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure FROM bahn_monitoring_prices INNER JOIN bahn_monitoring_connections ON (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) WHERE bahn_monitoring_prices.price > 0"
         result = db.select(query)
         for price in result:
@@ -96,19 +98,36 @@ class StatisticsCalculator():
             days_to_prices[price["days_to_train_departure"]].append(price["price"])
 
         for day, prices in days_to_prices.items():
+
+            # calc statistics by day
             threshold = 19
             minimum = 300.0
             maximum = 0.0
+            sum_ = 0
+            i = 0
             for price in prices:
+                i += 1
+                sum_ += float(price)
                 if float(price) < float(minimum) and float(price) > threshold:
                     minimum = price
                 if float(price) > float(maximum) and float(price) > threshold:
                     maximum = price
             days_to_minimum_prices[day] = minimum
             days_to_maximum_prices[day] = maximum
+            days_to_average_prices[day] = round(sum_/i, 2)
+
+            stdDev = 0
+            i = 0
+            for price in prices:
+                i += 1
+                stdDev += math.pow(days_to_average_prices[day]-float(price), 2)
+            days_to_deviation_prices[day] = round(math.sqrt(stdDev/i), 2)
+
         data["days_to_average_prices"] = {}
-        data["days_to_average_prices"]["minimum"] = days_to_minimum_prices
-        data["days_to_average_prices"]["maximum"] = days_to_maximum_prices
+        data["days_to_minimum_prices"] = days_to_minimum_prices
+        data["days_to_maximum_prices"] = days_to_maximum_prices
+        data["days_to_average_prices"] = days_to_average_prices
+        data["days_to_deviation_prices"] = days_to_deviation_prices
 
         self.logger.debug("Getting average price per weekday")
         data["prices_to_weekdays"] = {}
@@ -124,6 +143,8 @@ class StatisticsCalculator():
         results = db.select(query)
         for result in results:
             data["prices_to_weekdays_stdev"][map[result["weekday"]]] = result["average"]
+
+        
 
 
         r.setex("stats_data", datetime.timedelta(minutes=5), value=json.dumps(data))
