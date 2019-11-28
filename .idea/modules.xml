@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/bahnpreise.info-mono.iml" filepath="$PROJECT_DIR$/.idea/bahnpreise.info-mono.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mono.iml" filepath="$PROJECT_DIR$/mono.iml" />
     </modules>
   </component>
 </project>
