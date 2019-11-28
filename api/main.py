@@ -153,7 +153,7 @@ class Gettrackprice:
             return
 
         threshold = 19
-        minimum = 300.0
+        minimum = 0.0
         maximum = 0.0
         lastprice = 0.0
         sum_prices = 0
@@ -166,6 +166,10 @@ class Gettrackprice:
             if not current_days_to_train_departure in days_with_prices:
                 days_with_prices[current_days_to_train_departure] = []
             days_with_prices[current_days_to_train_departure].append(price["price"])
+
+            if float(lastprice) == 0.0:
+                lastprice = float(price["price"])
+                continue
 
             if float(price["price"]) < float(minimum) and float(price["price"]) > threshold:
                 minimum = price["price"]
