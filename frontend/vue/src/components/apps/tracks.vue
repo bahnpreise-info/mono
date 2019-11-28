@@ -33,14 +33,14 @@
               </div>
               <div class="col-sm-auto" style="overflow-y:scroll; max-height: 50vh">
                   <ul class="list-group" id="connectionSearchResults" v-for="(key, value) in searchresults">
-                      <button type="button" class="list-group-item list-group-item-action" @click="setChartData(value)">{{key["start"]}} -> {{key["end"]}}</button>
+                      <button type="button" class="list-group-item list-group-item-action" @click="setChartData(key['id'])">{{key["start"]}} -> {{key["end"]}}</button>
                   </ul>
               </div>
 
           </div>
       </div>
       <!-- CARDS -->
-      <div class="row" style="display: none;">
+      <div class="row">
           <div class="col row">
               <!-- Card -->
               <div class="col-xl-4 col-md-4 mb-3">
@@ -49,7 +49,7 @@
                           <div class="row no-gutters align-items-center">
                               <div class="col mr-2">
                                   <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Geringster Preis</div>
-                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMinPrice">20,90€</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMinPrice">{{minimum}}€</div>
                               </div>
                               <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div>
                           </div>
@@ -63,7 +63,7 @@
                           <div class="row no-gutters align-items-center">
                               <div class="col mr-2">
                                   <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Durchschnittlicher Preis</div>
-                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conAvrgPrice">25,90€</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conAvrgPrice">{{average}}€</div>
                               </div>
                               <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div>
                           </div>
@@ -77,7 +77,7 @@
                           <div class="row no-gutters align-items-center">
                               <div class="col mr-2">
                                   <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Maximaler Preis</div>
-                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMaxPrice">45,90€</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conMaxPrice">{{maximum}}€</div>
                               </div>
                               <div class="col-auto"> <i class="fas fa-coins fa-2x text-gray-300"></i> </div>
                           </div>
@@ -90,22 +90,8 @@
                       <div class="card-body">
                           <div class="row no-gutters align-items-center">
                               <div class="col mr-2">
-                                  <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Tage bis zur Abfahrt</div>
-                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conDaysLeft">0</div>
-                              </div>
-                              <div class="col-auto"> <i class="fas fa-calendar-alt fa-2x text-gray-300"></i> </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-              <!-- Card -->
-              <div class="col-xl-4 col-md-4 mb-3">
-                  <div class="card border-left-dark shadow h-100 py-2">
-                      <div class="card-body">
-                          <div class="row no-gutters align-items-center">
-                              <div class="col mr-2">
                                   <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Gesammelte Datenpunkte</div>
-                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conSumPrices">10</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conSumPrices">{{datapoints}}</div>
                               </div>
                               <div class="col-auto"> <i class="fas fa-chart-bar fa-2x text-gray-300"></i> </div>
                           </div>
@@ -119,7 +105,7 @@
                           <div class="row no-gutters align-items-center">
                               <div class="col mr-2">
                                   <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Größter Preissprung</div>
-                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conPriceJump">43,10€</div>
+                                  <div class="h5 mb-0 font-weight-bold text-gray-800" id="conPriceJump">{{maximumpricejump_up}}€</div>
                               </div>
                               <div class="col-auto"> <i class="fas fa-arrows-alt-v fa-2x text-gray-300"></i> </div>
                           </div>
@@ -171,6 +157,12 @@ export default {
             prices: {},
             start: "",
             end: "",
+            average: 0.0,
+            maximum: 0.0,
+            minimum: 0.0,
+            datapoints: 0,
+            maximumpricejump_up: 0.0,
+
         }
     },
     methods: {
@@ -187,14 +179,11 @@ export default {
                 }
                 let name = obj.start + " -> " + obj.end;
                 if (name.toLowerCase().includes(this.searchQuery.toLowerCase())){
-                    this.searchresults.push({start: obj.start, end: obj.end})
+                    this.searchresults.push({id: i, start: obj.start, end: obj.end})
                 }
             }
-            console.log(this.searchresults)
         },
         setChartData: function (id = null) {
-            console.log(id);
-            console.log(this.all_connections);
             if (id === null) {
                 id = Math.floor(Math.random() * this.all_connections.length);
                 this.start = this.all_connections[id]["start"];
@@ -208,7 +197,12 @@ export default {
             axiosparams.append('start', this.start);
             axiosparams.append('end', this.end);
             axios.get(this.apiUrl + '/connections/getaveragetrackprice', {params: axiosparams}).then(response => {
-                this.prices = response.data.data;
+                this.prices = response.data.data.days_with_prices;
+                this.maximum = response.data.data.maximum.toFixed(2);
+                this.minimum = response.data.data.minimum.toFixed(2);
+                this.average = response.data.data.average.toFixed(2);
+                this.maximumpricejump_up = response.data.data.maximumpricejump_up.toFixed(2);
+                this.datapoints = response.data.data.datapoints;
                 this.renderChart();
             });
         },
@@ -354,11 +348,13 @@ export default {
                 axiosparams.append('start', this.start);
                 axiosparams.append('end', this.end);
                 axios.get(this.apiUrl + '/connections/getaveragetrackprice', {params: axiosparams}).then(response => {
-                    if (Object.keys(response.data.data).length > 0){
-                        this.prices = response.data.data;
-                        console.log(this.start);
-                        console.log(this.end);
-                        console.log(this.prices);
+                    if (Object.keys(response.data.data.days_with_prices).length > 0){
+                        this.prices = response.data.data.days_with_prices;
+                        this.maximum = response.data.data.maximum.toFixed(2);
+                        this.minimum = response.data.data.minimum.toFixed(2);
+                        this.average = response.data.data.average.toFixed(2);
+                        this.maximumpricejump_up = response.data.data.maximumpricejump_up.toFixed(2);
+                        this.datapoints = response.data.data.datapoints;
                         this.renderChart();
                     } else{
                         this.setChartData();
