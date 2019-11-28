@@ -153,12 +153,21 @@ class Gettrackprice:
                 days_with_prices[current_days_to_train_departure] = []
             days_with_prices[current_days_to_train_departure].append(price["price"])
 
-        data = {}
+        threshold = 19
+        minimum = 300.0
+        maximum = 0.0
+        for price in result:
+            if float(price["price"]) < float(minimum) and float(price["price"]) > threshold:
+                minimum = price["price"]
+            if float(price["price"]) > float(maximum) and float(price["price"]) > threshold:
+                maximum = price["price"]
+
+        data = {"days_with_prices": {}, "minimum": minimum, "maximum": maximum}
         for day, prices in days_with_prices.iteritems():
             sum=0
             for price in prices:
                 sum = sum + float(price)
-            data[day] = round(sum / len(prices), 2)
+            data["days_with_prices"][day] = round(sum / len(prices), 2)
 
         #Set redis cache for 30 minutes
         r.setex(cache, timedelta(minutes=30), value=json.dumps(data))
