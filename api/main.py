@@ -152,8 +152,8 @@ class Gettrackprice:
             resp.body = json.dumps({"status": "error", "data": {}})
             return
 
-        threshold = 19
-        minimum = 0.0
+        threshold = 15.0
+        minimum = 300.0
         maximum = 0.0
         lastprice = 0.0
         sum_prices = 0
