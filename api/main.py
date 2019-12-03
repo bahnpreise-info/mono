@@ -7,22 +7,22 @@ from orator import DatabaseManager
 from datetime import timedelta
 
 #Read mysql config
-mysqlconfig = ConfigParser()
-mysqlconfig.readfp(open('config/mysql.ini'))
+config = ConfigParser()
+config.readfp(open('config/mysql.ini'))
 
 oratorconfig = {
     'scheduler': {
         'driver': 'mysql',
-        'host': mysqlconfig.get('sheduler', 'host'),
-        'database': mysqlconfig.get('sheduler', 'database'),
-        'user': mysqlconfig.get('sheduler', 'username'),
-        'password': mysqlconfig.get('sheduler', 'password'),
+        'host': config.get('sheduler', 'host'),
+        'database': config.get('sheduler', 'database'),
+        'user': config.get('sheduler', 'username'),
+        'password': config.get('sheduler', 'password'),
         'prefix': ''
     }
 }
 db = DatabaseManager(oratorconfig)
 db.connection().enable_query_log()
-r = redis.Redis(host="redis")
+r = redis.Redis(host=config.get('redis', 'host'))
 
 class Bahnpricesforconnection:
     def on_get(self, req, resp):
@@ -128,7 +128,7 @@ class Gettrackprice:
             return
 
         #The combination is possibly cached in redis
-        cache="trackprice_{0}_{1}".format(start, end)
+        cache="trackprice_{0}_{1}".format(start, end).replace(" ", "_")
         redis_cache = r.get(cache)
         if redis_cache is not None:
             print("Using redis cache to serve request")
