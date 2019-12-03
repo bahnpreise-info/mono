@@ -5,10 +5,12 @@ import datetime, logging, time, pytz, redis, json, math
 from orator import DatabaseManager
 from configparser import ConfigParser
 
-#Read mysql config
-config = ConfigParser()
-config.readfp(open('database.ini'))
+#this line is not needed anymore i think
+#os.chdir("/opt/app") #change this according to your needs - working directory
 
+# setup database connection, read from config file
+config = ConfigParser()
+config.read_file(open('database.ini'))
 oratorconfig = {
     'scheduler': {
         'driver': 'mysql',
@@ -22,6 +24,7 @@ oratorconfig = {
 db = DatabaseManager(oratorconfig)
 r = redis.Redis(host=config.get('redis', 'host'))
 
+# this class is responsible for calculating all the statistics and sending them to the redis caching server
 class StatisticsCalculator():
     def __init__(self):
         self.status = {} #saves the status (true/false) of important jobs
@@ -37,6 +40,7 @@ class StatisticsCalculator():
             self.cachetracks()
             self.logger.info("Finished calculating statistics")
 
+    # setup a logger
     def setupLogger(self):
         try:
             self.logger = logging.getLogger('StatisticsCalculator')
