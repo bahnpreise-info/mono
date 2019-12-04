@@ -36,11 +36,14 @@ class StatisticsCalculator():
             print("FATAL ERROR: Could not setup a logger. Stopped execution.")
         if self.status['logger']:
             while True:
-                self.logger.info("Start calculating statistics")
-                self.cachestats()
-                self.cachetracks()
-                self.logger.info("Finished calculating statistics")
-                time.sleep(60)
+                try:
+                    self.logger.info("Start calculating statistics")
+                    self.cachestats()
+                    self.cachetracks()
+                    self.logger.info("Finished calculating statistics")
+                    time.sleep(60)
+                except:
+                    time.sleep(5)
     # setup a logger
     def setupLogger(self):
         try:
