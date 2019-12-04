@@ -167,7 +167,7 @@ class StatisticsCalculator():
             data["prices_to_weekdays_stdev"][map[result["weekday"]]] = result["average"]    # deviation by weekday
 
         # send everything to the redis cache, so the api can access it
-        r.setex("stats_data", datetime.timedelta(minutes=5), value=json.dumps(data))
+        r.setex("stats_data", datetime.timedelta(minutes=10), value=json.dumps(data))
 
     def cachetracks(self):
         query = "SELECT DISTINCT start, end FROM bahn_monitoring_connections"
