@@ -170,75 +170,77 @@ class StatisticsCalculator():
         query = "SELECT DISTINCT start, end FROM bahn_monitoring_connections"
         tracks = db.select(query)
         for track in tracks:
-            #Cast to utf-8
-            start = track["start"]
-            end = track["end"]
+            try:
+                start = track["start"]
+                end = track["end"]
 
-            #Log something
-            self.logger.debug("Processing {0} -> {1}".format(start, end))
+                #Log something
+                self.logger.debug("Processing {0} -> {1}".format(start, end))
 
-            #The combination is possibly cached in redis
-            cache="trackprice_{0}_{1}".format(start, end).replace(" ", "_")
-            redis_cache = r.get(cache)
-            if redis_cache is not None:
-                self.logger.debug("cache {0} already present".format(cache))
-                continue
-
-            query = "SELECT \
-                bahn_monitoring_connections.id, \
-                bahn_monitoring_connections.start, \
-                bahn_monitoring_connections.end, \
-                bahn_monitoring_prices.price, \
-                bahn_monitoring_prices.time, \
-                DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
-                FROM bahn_monitoring_connections \
-                INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-                WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                ORDER BY bahn_monitoring_prices.time ASC".format(track["start"], track["end"])
-            result = db.select(query)
-
-            if result is None:
-                 continue
-            if len(result) == 0:
-                continue
-
-            threshold = 15.0
-            minimum = 300.0
-            maximum = 0.0
-            sum_prices = 0
-            days_with_prices = {}
-            for price in result:
-                if float(price["price"]) == float(0):
+                #The combination is possibly cached in redis
+                cache="trackprice_{0}_{1}".format(start, end).replace(" ", "_")
+                redis_cache = r.get(cache)
+                if redis_cache is not None:
+                    self.logger.debug("cache {0} already present".format(cache))
                     continue
-                current_days_to_train_departure = price["days_to_train_departure"]
-                if not current_days_to_train_departure in days_with_prices:
-                    days_with_prices[current_days_to_train_departure] = []
-                days_with_prices[current_days_to_train_departure].append(price["price"])
 
-                if float(price["price"]) < float(minimum) and float(price["price"]) > threshold:
-                    minimum = price["price"]
-                if float(price["price"]) > float(maximum) and float(price["price"]) > threshold:
-                    maximum = price["price"]
-                sum_prices = sum_prices + float(price["price"])
+                query = "SELECT \
+                    bahn_monitoring_connections.id, \
+                    bahn_monitoring_connections.start, \
+                    bahn_monitoring_connections.end, \
+                    bahn_monitoring_prices.price, \
+                    bahn_monitoring_prices.time, \
+                    DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
+                    FROM bahn_monitoring_connections \
+                    INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
+                    WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
+                    ORDER BY bahn_monitoring_prices.time ASC".format(track["start"], track["end"])
+                result = db.select(query)
 
-            lastprice = 0.0
-            maximumpricejump_up = 0.0
-            _days_with_prices = {}
-            for day, prices in days_with_prices.items():
-                sum=0
-                for price in prices:
-                    sum = sum + float(price)
-                avg_price_for_day = round(sum / len(prices), 2)
-                _days_with_prices[day] = avg_price_for_day
+                if result is None:
+                     continue
+                if len(result) == 0:
+                    continue
 
-                if lastprice == 0.0:
+                threshold = 15.0
+                minimum = 300.0
+                maximum = 0.0
+                sum_prices = 0
+                days_with_prices = {}
+                for price in result:
+                    if float(price["price"]) == float(0):
+                        continue
+                    current_days_to_train_departure = price["days_to_train_departure"]
+                    if not current_days_to_train_departure in days_with_prices:
+                        days_with_prices[current_days_to_train_departure] = []
+                    days_with_prices[current_days_to_train_departure].append(price["price"])
+
+                    if float(price["price"]) < float(minimum) and float(price["price"]) > threshold:
+                        minimum = price["price"]
+                    if float(price["price"]) > float(maximum) and float(price["price"]) > threshold:
+                        maximum = price["price"]
+                    sum_prices = sum_prices + float(price["price"])
+
+                lastprice = 0.0
+                maximumpricejump_up = 0.0
+                _days_with_prices = {}
+                for day, prices in days_with_prices.items():
+                    sum=0
+                    for price in prices:
+                        sum = sum + float(price)
+                    avg_price_for_day = round(sum / len(prices), 2)
+                    _days_with_prices[day] = avg_price_for_day
+
+                    if lastprice == 0.0:
+                        lastprice = avg_price_for_day
+                        continue
+                    if avg_price_for_day > lastprice and avg_price_for_day - lastprice > maximumpricejump_up:
+                        maximumpricejump_up = avg_price_for_day - lastprice
                     lastprice = avg_price_for_day
-                    continue
-                if avg_price_for_day > lastprice and avg_price_for_day - lastprice > maximumpricejump_up:
-                    maximumpricejump_up = avg_price_for_day - lastprice
-                lastprice = avg_price_for_day
 
-            data = {"days_with_prices": _days_with_prices, "minimum": float(minimum), "maximum": float(maximum), "average": float(round(sum_prices / len(result), 2)), "datapoints": len(result), "maximumpricejump_up": round(float(maximumpricejump_up), 2)}
+                data = {"days_with_prices": _days_with_prices, "minimum": float(minimum), "maximum": float(maximum), "average": float(round(sum_prices / len(result), 2)), "datapoints": len(result), "maximumpricejump_up": round(float(maximumpricejump_up), 2)}
 
-            #Set redis cache for 30 minutes
-            r.setex(cache, datetime.timedelta(minutes=30), value=json.dumps(data))
+                #Set redis cache for 30 minutes
+                r.setex(cache, datetime.timedelta(minutes=30), value=json.dumps(data))
+            except:
+                self.logger.debug("Error while processing connection {0} -> {1}".format(track["start"], track["end"]))
