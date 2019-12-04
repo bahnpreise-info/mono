@@ -199,6 +199,8 @@ class StatisticsCalculator():
 
             if result is None:
                  continue
+            if len(result) == 0:
+                continue
 
             threshold = 15.0
             minimum = 300.0
