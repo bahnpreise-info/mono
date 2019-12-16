@@ -95,39 +95,30 @@ class Scheduler():
 
     def updateConnection(self, c):
         connection = self.getConnection(c["start"], c["end"], c["starttime"])
+        self.conDatabase.connect()
 
-        if self.getStarttime(c["starttime"], connection['departure']) == c["starttime"] and self.getEndtime(c["starttime"], connection['duration']) == c["endtime"]:
-            timedelta = (c["starttime"]-datetime.datetime.now())/datetime.timedelta(hours=1)
-            self.conDatabase.connect()
-
-            if connection['price'] is None:
-                connection['price'] = 0
-
-            if timedelta > 30:  #if more then 30 hours: next scrape in 10-26 hours
-                randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(10, 25), minutes=random.randint(0,59))
-                self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
-            elif timedelta > 10:  #if 10-30 hours: next scrape in 8-10 hours
-                randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(8, 9), minutes=random.randint(0,59))
-                self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
-            elif timedelta >= 2:  #if 2-10 hours: next scrape in 2 hours
-                randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=1, minutes=50)
-                self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
-            elif timedelta < 2:  #if less then 2 hours: set connection to inactive
-                self.conDatabase.update([['active', 0]], self.databasePrefix+"connections", "id = "+str(c["id"]))
-
-            if connection is False:
-                if self.conDatabase.insertInto(self.databasePrefix+"prices", [['price', connection['price']], ['connection_id', c["id"]]]):
-                    returnval = True
-                else:
-                    self.logger.error("Not able to insert price")
-                    returnval = False
-
-                self.conDatabase.close()
-                return returnval
+        if connection is not False:
+            if self.getStarttime(c["starttime"], connection['departure']) == c["starttime"] and self.getEndtime(c["starttime"], connection['duration']) == c["endtime"]:
+                if connection['price'] == None:
+                    connection['price'] = 0
+                self.conDatabase.insertInto(self.databasePrefix+"prices", [['price', connection['price']], ['connection_id', c["id"]]])
         else:
-            #self.logger.error("Not able to get Connection.")
+            self.logger.error("Not able to get Connection.")
             #self.deleteconnection(c["id"])
-            return False
+
+        timedelta = (c["starttime"]-datetime.datetime.now())/datetime.timedelta(hours=1)
+        if timedelta > 30:  #if more then 30 hours: next scrape in 10-26 hours
+            randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(10, 25), minutes=random.randint(0,59))
+            self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
+        elif timedelta > 10:  #if 10-30 hours: next scrape in 8-10 hours
+            randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(8, 9), minutes=random.randint(0,59))
+            self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
+        elif timedelta >= 2:  #if 2-10 hours: next scrape in 2 hours
+            randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=1, minutes=50)
+            self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
+        elif timedelta < 2:  #if less then 2 hours: set connection to inactive
+            self.conDatabase.update([['active', 0]], self.databasePrefix+"connections", "id = "+str(c["id"]))
+        self.conDatabase.close()
 
     def getConnection(self, stationStart, stationEnd, timeStart):
         ret = {}
