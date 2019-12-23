@@ -1,7 +1,7 @@
 import _thread, time, os
 from includes import scheduler, connectionmanager, statistic_cacher, tracks_cacher
 
-os.chdir("/opt/app")
+#os.chdir("/opt/app")
 
 _thread.start_new_thread( scheduler.Scheduler, () )
 _thread.start_new_thread( connectionmanager.ConnectionManager, () )

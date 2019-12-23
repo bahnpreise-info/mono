@@ -1,5 +1,5 @@
 from includes import mysql
-import datetime, os, schiene, random, configparser, logging, time, pytz
+import datetime, os, random, configparser, logging, time, pytz, schiene
 from orator import DatabaseManager
 
 #os.chdir("/opt/app") #change this according to your needs - working directory
@@ -99,7 +99,7 @@ class Scheduler():
 
         if connection is not False:
             if self.getStarttime(c["starttime"], connection['departure']) == c["starttime"] and self.getEndtime(c["starttime"], connection['duration']) == c["endtime"]:
-                if connection['price'] == None:
+                if "price" not in connection or connection['price'] is None:
                     connection['price'] = 0
                 self.conDatabase.insertInto(self.databasePrefix+"prices", [['price', connection['price']], ['connection_id', c["id"]]])
         else:
@@ -109,16 +109,15 @@ class Scheduler():
         timedelta = (c["starttime"]-datetime.datetime.now())/datetime.timedelta(hours=1)
         if timedelta > 30:  #if more then 30 hours: next scrape in 10-26 hours
             randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(10, 25), minutes=random.randint(0,59))
-            self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomDate.strftime('%Y-%m-%d %H:%M:%S'))
         elif timedelta > 10:  #if 10-30 hours: next scrape in 8-10 hours
             randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(8, 9), minutes=random.randint(0,59))
-            self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomDate.strftime('%Y-%m-%d %H:%M:%S'))
         elif timedelta >= 2:  #if 2-10 hours: next scrape in 2 hours
             randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=1, minutes=50)
-            self.conDatabase.update([['next_scrape', '"'+randomDate.strftime('%Y-%m-%d %H:%M:%S')+'"']], self.databasePrefix+"connections", "id = "+str(c["id"]))
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomDate.strftime('%Y-%m-%d %H:%M:%S'))
         elif timedelta < 2:  #if less then 2 hours: set connection to inactive
-            self.conDatabase.update([['active', 0]], self.databasePrefix+"connections", "id = "+str(c["id"]))
-        self.conDatabase.close()
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(active=0)
 
     def getConnection(self, stationStart, stationEnd, timeStart):
         ret = {}
