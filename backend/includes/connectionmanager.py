@@ -113,18 +113,19 @@ class ConnectionManager():
 
         connection = self.getConnection(stationStart, stationEnd, timeStart)
 
-        if connection != False:
+        if connection is not False:
             startTime = self.getStarttime(timeStart, connection['departure'])
             endTime = self.getEndtime(startTime, connection["duration"])
 
             if endTime != False and startTime != False:
                 self.conDatabase.connect()
                 if self.conDatabase.insertInto(self.databasePrefix+"connections", [['start', connection['stationStart']], ['end', connection['stationEnd']], ['starttime', startTime.strftime('%Y-%m-%d %H:%M:%S')], ['endtime', endTime.strftime('%Y-%m-%d %H:%M:%S')], ['next_scrape', datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')], ['active', 1]]):
-                    return True
+                    ret = True
                 else:
                     self.logger.error("Not able to insert Connection")
-                    return False
+                    ret = False
                 self.conDatabase.close()
+                return ret
             else:
                 self.logger.error("Not able to calc start and end time")
                 return False
@@ -132,21 +133,20 @@ class ConnectionManager():
             self.logger.error("Not able to create Connection")
             return False
 
-
-    def getConnection(self, stationStart, stationEnd, timeStart):
+    def getConnection(self, start, end, startTime):
         ret = {}
         conSchiene = schiene.Schiene()
-
         try:
-            connections = conSchiene.connections(stationStart, stationEnd, dt=timeStart)
-            ret["stationStart"] = stationStart
-            ret["stationEnd"] = stationEnd
+            connections = conSchiene.connections(start, end, dt=startTime)
+            ret["stationStart"] = start
+            ret["stationEnd"] = end
             ret["products"] = connections[0]['products']
             ret["departure"] = connections[0]['departure']
             ret["duration"] = connections[0]['time']
             ret["departure"] = connections[0]['departure']
-        except Exception as e:
-            self.logger.error("Not able to create Connection for %s - %s at %s: %s", stationStart, stationEnd, timeStart, e)
+            ret["price"] = connections[0]['price']
+        except:
+            self.logger.error("Not able to create Connection")
             return False
 
         return ret

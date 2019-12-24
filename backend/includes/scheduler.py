@@ -1,5 +1,5 @@
-from includes import mysql
-import datetime, os, random, configparser, logging, time, pytz, schiene
+from includes import mysql, schiene
+import datetime, os, random, configparser, logging, time, pytz
 from orator import DatabaseManager
 
 #os.chdir("/opt/app") #change this according to your needs - working directory
@@ -83,14 +83,13 @@ class Scheduler():
 
     def checkConnections(self):
         connections = oratorDB.table('bahn_monitoring_connections').where('active', '1').where('next_scrape', '<', datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")).get()
-        self.logger.debug("Connections to process: {}".format(connections))
 
-        if connections != False:
+        if connections is not False:
             for connection in connections:
                 self.logger.debug("Processing connection with id {}".format(connection['id']))
                 self.updateConnection(connection)
         else:
-            self.logger.error("Not able to select connections.")
+            self.logger.error("Not able to select connections to check from database.")
             return False
 
     def updateConnection(self, c):
@@ -108,24 +107,24 @@ class Scheduler():
 
         timedelta = (c["starttime"]-datetime.datetime.now())/datetime.timedelta(hours=1)
         if timedelta > 30:  #if more then 30 hours: next scrape in 10-26 hours
-            randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(10, 25), minutes=random.randint(0,59))
-            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomDate.strftime('%Y-%m-%d %H:%M:%S'))
+            randomdate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(10, 25), minutes=random.randint(0,59))
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomdate.strftime('%Y-%m-%d %H:%M:%S'))
         elif timedelta > 10:  #if 10-30 hours: next scrape in 8-10 hours
-            randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(8, 9), minutes=random.randint(0,59))
-            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomDate.strftime('%Y-%m-%d %H:%M:%S'))
+            randomdate = datetime.datetime.utcnow()+datetime.timedelta(hours=random.randint(8, 9), minutes=random.randint(0,59))
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomdate.strftime('%Y-%m-%d %H:%M:%S'))
         elif timedelta >= 2:  #if 2-10 hours: next scrape in 2 hours
-            randomDate = datetime.datetime.utcnow()+datetime.timedelta(hours=1, minutes=50)
-            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomDate.strftime('%Y-%m-%d %H:%M:%S'))
+            randomdate = datetime.datetime.utcnow()+datetime.timedelta(hours=1, minutes=50)
+            oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(next_scrape=randomdate.strftime('%Y-%m-%d %H:%M:%S'))
         elif timedelta < 2:  #if less then 2 hours: set connection to inactive
             oratorDB.table('bahn_monitoring_connections').where('id', c["id"]).update(active=0)
 
-    def getConnection(self, stationStart, stationEnd, timeStart):
+    def getConnection(self, start, end, startTime):
         ret = {}
         conSchiene = schiene.Schiene()
         try:
-            connections = conSchiene.connections(stationStart, stationEnd, dt=timeStart)
-            ret["stationStart"] = stationStart
-            ret["stationEnd"] = stationEnd
+            connections = conSchiene.connections(start, end, dt=startTime)
+            ret["stationStart"] = start
+            ret["stationEnd"] = end
             ret["products"] = connections[0]['products']
             ret["departure"] = connections[0]['departure']
             ret["duration"] = connections[0]['time']
