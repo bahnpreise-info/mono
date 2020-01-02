@@ -5,6 +5,7 @@ import time, falcon, json, datetime, redis
 from configparser import ConfigParser
 from orator import DatabaseManager
 from datetime import timedelta
+from falcon_prometheus import PrometheusMiddleware
 
 #Read mysql config
 config = ConfigParser()
@@ -34,34 +35,41 @@ class Bahnpricesforconnection:
             if key == "connection_id":
                 id = value
 
-        if id == None or id == 0:
-            resp.body = "Not enough info provided"
+        #return error in case we did not receive any connection id
+        if id is None or id is 0:
+            resp.body = json.dumps({"status": "error", "data": {}, "msg": "Not enough info provided"})
             return
 
-        query = "SELECT bahn_monitoring_connections.start, \
-        bahn_monitoring_connections.end, \
-        bahn_monitoring_connections.starttime, \
-        bahn_monitoring_prices.time as querytime, \
-        bahn_monitoring_prices.price, \
-        DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
-        FROM bahn_monitoring_connections \
-        INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-        WHERE price > 0 AND \
-        bahn_monitoring_connections.id = {0} \
-        HAVING days_to_train_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141)".format(id)
-        database_prices = db.select(query)
+        redis_cache = r.get("connection_price_{0}".format(id))
+        if redis_cache is None:
+            query = "SELECT bahn_monitoring_connections.start, \
+            bahn_monitoring_connections.end, \
+            bahn_monitoring_connections.starttime, \
+            bahn_monitoring_prices.time as querytime, \
+            bahn_monitoring_prices.price, \
+            DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
+            FROM bahn_monitoring_connections \
+            INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
+            WHERE price > 0 AND \
+            bahn_monitoring_connections.id = {0} \
+            HAVING days_to_train_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141)".format(id)
+            database_prices = db.select(query)
 
-        data = {"start": "", "end": "", "starttime": "", "prices_days_to_departure": {}}
+            data = {"start": "", "end": "", "starttime": "", "prices_days_to_departure": {}}
 
-        for price in database_prices:
-            data["start"] = price["start"]
-            data["end"] = price["end"]
-            data["starttime"] = price["starttime"].strftime("%Y-%m-%d %H:%M:%S")
-            data["prices_days_to_departure"].update({
-                int(price["days_to_train_departure"]): float(price["price"])
-            })
+            for price in database_prices:
+                data["start"] = price["start"]
+                data["end"] = price["end"]
+                data["starttime"] = price["starttime"].strftime("%Y-%m-%d %H:%M:%S")
+                data["prices_days_to_departure"].update({
+                    int(price["days_to_train_departure"]): float(price["price"])
+                })
+            #Set redis cache
+            r.setex("connection_price_{0}".format(id), timedelta(minutes=5), value=json.dumps(data))
+        else:
+            print("Using redis cache to serve request")
+            data = json.loads(redis_cache)
         resp.body = json.dumps({"status": "success", "data": data})
-
 
 class Getallconnections:
     def on_get(self, req, resp):
@@ -266,8 +274,9 @@ class PricesXdaysbefore:
         price = db.select(query)
         resp.body = json.dumps({"status": "success", "average": price[0]["price"]})
 
-
-api = falcon.API()
+prometheus = PrometheusMiddleware()
+api = falcon.API(middleware=prometheus)
+api.add_route('/metrics', prometheus)
 api.add_route('/prices', Bahnpricesforconnection())
 api.add_route('/stats', Getstats())
 api.add_route('/stats/averageprices', PricesXdaysbefore())
