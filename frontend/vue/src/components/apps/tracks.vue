@@ -11,7 +11,7 @@
                       <h6 class="m-0 font-weight-bold text-primary" id="chart_name">{{chart_name}}</h6> </div>
                   <div class="card-body card-nopadding">
                       <div class="chart-area" id="bahnPriceAreachart1Top">
-                          <canvas id="bahnPriceAreachart1"></canvas>
+                          <canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>
                       </div>
                   </div>
               </div>
@@ -197,13 +197,17 @@ export default {
             axiosparams.append('start', this.start);
             axiosparams.append('end', this.end);
             axios.get(this.apiUrl + '/connections/getaveragetrackprice', {params: axiosparams}).then(response => {
-                this.prices = response.data.data.days_with_prices;
-                this.maximum = response.data.data.maximum.toFixed(2);
-                this.minimum = response.data.data.minimum.toFixed(2);
-                this.average = response.data.data.average.toFixed(2);
-                this.maximumpricejump_up = response.data.data.maximumpricejump_up.toFixed(2);
-                this.datapoints = response.data.data.datapoints;
-                this.renderChart();
+                if (typeof response.data === 'undefined'){
+                    this.setChartData()
+                } else {
+                    this.prices = response.data.data.days_with_prices;
+                    this.maximum = response.data.data.maximum.toFixed(2);
+                    this.minimum = response.data.data.minimum.toFixed(2);
+                    this.average = response.data.data.average.toFixed(2);
+                    this.maximumpricejump_up = response.data.data.maximumpricejump_up.toFixed(2);
+                    this.datapoints = response.data.data.datapoints;
+                    this.renderChart()
+                }
             });
         },
         renderChart: function () {
@@ -239,12 +243,13 @@ export default {
             //Set chart name
             this.chart_name = this.start + " -> " + this.end;
 
+            //cleanup old chart
             $("#bahnPriceAreachart1").remove();
-            $("#bahnPriceAreachart1Top").html('<canvas id="bahnPriceAreachart1"></canvas>');
+            $("#bahnPriceAreachart1Top").html('<canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>');
 
             //Start drawing chart
             let ctx = document.getElementById("bahnPriceAreachart1");
-            new Chart(ctx, {
+            this.chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: dates_detailed,

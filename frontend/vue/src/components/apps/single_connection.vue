@@ -11,7 +11,7 @@
                       <h6 class="m-0 font-weight-bold text-primary" id="chart_name">{{chart_name}}</h6> </div>
                   <div class="card-body card-nopadding">
                       <div class="chart-area" id="bahnPriceAreachart1Top">
-                          <canvas id="bahnPriceAreachart1"></canvas>
+                          <canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>
                       </div>
                   </div>
               </div>
@@ -195,7 +195,11 @@ export default {
             if (connection_id === null) {
                 axios.get(this.apiUrl + '/connections/getrandomconnection').then(response => {
                     this.data = response;
-                    this.renderChart();
+                    if (typeof this.data === 'undefined' || typeof this.data.data.data.connection_id === 'undefined'){
+                        this.getChartData()
+                    } else {
+                        this.renderChart();
+                    }
                 });
             } else {
                 let axiosparams = new URLSearchParams();
@@ -236,8 +240,9 @@ export default {
             //End of building the arrays for the chart
             this.chart_name = this.data.data.data.start + " -> " + this.data.data.data.end + " @ " + this.data.data.data.starttime;
 
+            //Cleanup old chart
             $("#bahnPriceAreachart1").remove();
-            $("#bahnPriceAreachart1Top").html('<canvas id="bahnPriceAreachart1"></canvas>');
+            $("#bahnPriceAreachart1Top").html('<canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>');
 
             //Start drawing chart
             let ctx = document.getElementById("bahnPriceAreachart1");
