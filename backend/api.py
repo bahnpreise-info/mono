@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #encoding: utf-8
 
+from includes.functions import Logger, TrackPrices
 import time, falcon, json, datetime, redis
 from configparser import ConfigParser
 from orator import DatabaseManager
@@ -9,15 +10,15 @@ from falcon_prometheus import PrometheusMiddleware
 
 #Read mysql config
 config = ConfigParser()
-config.readfp(open('config/mysql.ini'))
+config.readfp(open('database.ini'))
 
 oratorconfig = {
     'scheduler': {
         'driver': 'mysql',
-        'host': config.get('sheduler', 'host'),
-        'database': config.get('sheduler', 'database'),
-        'user': config.get('sheduler', 'username'),
-        'password': config.get('sheduler', 'password'),
+        'host': config.get('database', 'host'),
+        'database': config.get('database', 'database'),
+        'user': config.get('database', 'user'),
+        'password': config.get('database', 'password'),
         'prefix': ''
     }
 }
@@ -132,7 +133,7 @@ class Gettrackprice:
             if key == "end":
                 end = value.encode('utf-8')
         if start is None or end is None:
-            resp.body = json.dumps({"status": "error", "data": {}})
+            resp.body = json.dumps({"status": "error", "data": {"message": "Please specify 'start' and 'end' station as request parameter"}})
             return
 
         #The combination is possibly cached in redis
@@ -143,62 +144,8 @@ class Gettrackprice:
             resp.body = json.dumps({"status": "success", "data": json.loads(redis_cache)})
             return
 
-        query = "SELECT \
-            bahn_monitoring_connections.id, \
-            bahn_monitoring_connections.start, \
-            bahn_monitoring_connections.end, \
-            bahn_monitoring_prices.price, \
-            bahn_monitoring_prices.time, \
-            DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
-            FROM bahn_monitoring_connections \
-            INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-            WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}'\
-            ORDER BY bahn_monitoring_prices.time ASC".format(start, end)
-        result = db.select(query)
-
-        if result is None:
-            resp.body = json.dumps({"status": "error", "data": {}})
-            return
-
-        threshold = 15.0
-        minimum = 300.0
-        maximum = 0.0
-        sum_prices = 0
-        days_with_prices = {}
-        for price in result:
-            if float(price["price"]) == float(0):
-                continue
-            current_days_to_train_departure = price["days_to_train_departure"]
-            if not current_days_to_train_departure in days_with_prices:
-                days_with_prices[current_days_to_train_departure] = []
-            days_with_prices[current_days_to_train_departure].append(price["price"])
-
-            if float(price["price"]) < float(minimum) and float(price["price"]) > threshold:
-                minimum = price["price"]
-            if float(price["price"]) > float(maximum) and float(price["price"]) > threshold:
-                maximum = price["price"]
-            sum_prices = sum_prices + float(price["price"])
-
-        lastprice = 0.0
-        maximumpricejump_up = 0.0
-        _days_with_prices = {}
-        for day, prices in days_with_prices.iteritems():
-            sum=0
-            for price in prices:
-                sum = sum + float(price)
-            avg_price_for_day = round(sum / len(prices), 2)
-            _days_with_prices[day] = avg_price_for_day
-
-            if lastprice == 0.0:
-                lastprice = avg_price_for_day
-                continue
-            if avg_price_for_day > lastprice and avg_price_for_day - lastprice > maximumpricejump_up:
-                print lastprice
-                print avg_price_for_day
-                maximumpricejump_up = avg_price_for_day - lastprice
-            lastprice = avg_price_for_day
-
-        data = {"days_with_prices": _days_with_prices, "minimum": float(minimum), "maximum": float(maximum), "average": float(round(sum_prices / len(result), 2)), "datapoints": len(result), "maximumpricejump_up": round(float(maximumpricejump_up), 2)}
+        trackdb = TrackPrices(db, {"start": start.decode('utf-8'), "end": end.decode(('utf-8'))})
+        data = {"days_with_prices": trackdb.dailyaverage(), "minimum": trackdb.minimum(), "maximum": trackdb.maximum(), "average": trackdb.average(), "datapoints": trackdb.datapoints(), "maximumpricejump_up": trackdb.maxjumpup(),  "maximumpricejump_down": trackdb.maxjumpdown()}
 
         #Set redis cache for 30 minutes
         r.setex(cache, timedelta(minutes=30), value=json.dumps(data))
@@ -252,37 +199,15 @@ class Getstats:
             data["data"] = json.loads(redis_cache)
         resp.body = json.dumps(data)
 
-class PricesXdaysbefore:
-    def on_get(self, req, resp):
-        resp.set_header('Access-Control-Allow-Origin', '*')
-        resp.set_header('Access-Control-Allow-Methods', 'GET')
-        resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
-        days = 0
-        for key, value in req.params.items():
-            if key == "days":
-                days = value
-
-        if days is None or days == 0:
-            resp.body = "Not enough info provided"
-            return
-
-        query = "SELECT ROUND(AVG(bahn_monitoring_prices.price), 2) as price \
-        FROM bahn_monitoring_connections \
-        INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-        WHERE DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) = {0}".format(days)
-
-        price = db.select(query)
-        resp.body = json.dumps({"status": "success", "average": price[0]["price"]})
-
 prometheus = PrometheusMiddleware()
 api = falcon.API(middleware=prometheus)
 api.add_route('/metrics', prometheus)
-api.add_route('/prices', Bahnpricesforconnection())
+api.add_route('/prices', Bahnpricesforconnection()) #todo refactor to /connections/getaverageconnectionprice
 api.add_route('/stats', Getstats())
-api.add_route('/stats/averageprices', PricesXdaysbefore())
 
 
 api.add_route('/connections/getallconnections', Getallconnections())
+pi.add_route('/connections/getaverageconnectionprice', Bahnpricesforconnection()) #todo refactor to functions
 api.add_route('/connections/getalltracks', Getalltracks())
 api.add_route('/connections/getaveragetrackprice', Gettrackprice())
 api.add_route('/connections/getrandomconnection', Getrandomconnection())

@@ -1,67 +1,25 @@
 #!/usr/bin/python
 #encoding: utf-8
 
-import datetime, logging, time, pytz, redis, json, math
-from orator import DatabaseManager
-from configparser import ConfigParser
-
-#this line is not needed anymore i think
-#os.chdir("/opt/app") #change this according to your needs - working directory
-
-# setup database connection, read from config file
-config = ConfigParser()
-config.read_file(open('database.ini'))
-oratorconfig = {
-    'scheduler': {
-        'driver': 'mysql',
-        'host': config.get('database', 'host'),
-        'database': config.get('database', 'database'),
-        'user': config.get('database', 'user'),
-        'password': config.get('database', 'password'),
-        'prefix': ''
-    }
-}
-db = DatabaseManager(oratorconfig)
-r = redis.Redis(host=config.get('redis', 'host'))
+import datetime, logging, time, json, math
 
 # this class is responsible for calculating all the statistics and sending them to the redis caching server
-class StatisticsCalculator():
+class StatisticsCalculator(db, redis):
     def __init__(self):
-        self.status = {} #saves the status (true/false) of important jobs
-        self.status['logger'] = self.setupLogger()
-        self.local = pytz.timezone("Europe/Berlin")
-        if self.status['logger']:
-            self.logger.debug("logger setup successfull")
-        else:
-            print("FATAL ERROR: Could not setup a logger. Stopped execution.")
-        if self.status['logger']:
-            while True:
-                try:
-                    self.logger.info("Start calculating statistics")
-                    self.cachestats()
-                    self.logger.info("Finished calculating statistics")
-                    time.sleep(60)
-                except:
-                    time.sleep(5)
-    # setup a logger
-    def setupLogger(self):
-        try:
-            self.logger = logging.getLogger('StatisticsCalculator')
-            self.logger.setLevel(logging.DEBUG)
-            self.ch = logging.StreamHandler()
-            self.ch.setLevel(logging.DEBUG)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            self.ch.setFormatter(formatter)
-            self.logger.addHandler(self.ch)
-            self.logger.debug("--------------------------------- START --------------------------------")
-            self.logger.debug("Successfuly setup the logger.")
-            return True
-        except Exception as e:
-            print(e)
-            return False
+        self.db = db
+        self.redis = redis
+        while True:
+            try:
+                self.logger.write("Start calculating statistics")
+                self.cachestats()
+                self.logger.write("Finished calculating statistics")
+                time.sleep(60)
+            except:
+                time.sleep(5)
 
     # calculate the statistics
     def cachestats(self):
+        #todo: refactor to functions.py
         data={}
         self.logger.debug("Getting stats from database")
 
@@ -166,4 +124,4 @@ class StatisticsCalculator():
             data["prices_to_weekdays_stdev"][map[result["weekday"]]] = result["average"]    # deviation by weekday
 
         # send everything to the redis cache, so the api can access it
-        r.setex("stats_data", datetime.timedelta(minutes=15), value=json.dumps(data))
+        self.redis.setex("stats_data", datetime.timedelta(minutes=15), value=json.dumps(data))
