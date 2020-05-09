@@ -1,5 +1,5 @@
 import _thread, time, os, redis
-from includes import scheduler, connectionmanager, statistic_cacher, tracks_cacher
+from includes import scheduler, connectionmanager, statistic_cacher, tracks_cacher, connections_cacher
 from configparser import ConfigParser
 from orator import DatabaseManager
 
@@ -21,10 +21,10 @@ db = DatabaseManager(oratorconfig)
 r = redis.Redis(host=config.get('redis', 'host'))
 
 #_thread.start_new_thread( scheduler.Scheduler, () )
-#_thread.start_new_thread( connectionmanager.ConnectionManager, () )
-#_thread.start_new_thread( statistic_cacher.StatisticsCalculator, () )
-_thread.start_new_thread( tracks_cacher.TracksCacher, (db, r,))
-#todo: add connection cacher
+#_thread.start_new_thread( connectionmanager.ConnectionManager, ())
+_thread.start_new_thread( statistic_cacher.StatisticsCalculator, (db, r))
+#_thread.start_new_thread( tracks_cacher.TracksCacher, (db, r,))
+#_thread.start_new_thread( connections_cacher.ConnectionsCacher, (db, r,))
 
 while True:
   time.sleep(10)

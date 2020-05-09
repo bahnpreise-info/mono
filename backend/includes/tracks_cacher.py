@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #encoding: utf-8
 
-import datetime, logging, time, pytz, json, math
+import datetime, time, json
 from includes.functions import Logger, TrackPrices
 
 # this class is responsible for agregating all track prices and sending them to the redis caching server
@@ -13,11 +13,11 @@ class TracksCacher():
         while True:
             self.logger.write("Start calculating tracks")
             for track in self.db.select("SELECT DISTINCT start, end FROM bahn_monitoring_connections"):
-                self.cachetracks(track)
+                self.cache(track)
             self.logger.write("Finished calculating tracks")
             time.sleep(600)
 
-    def cachetracks(self, track):
+    def cache(self, track):
         self.logger.write("Processing {0} -> {1}".format(track["start"], track["end"]))
 
         #The combination is possibly cached in redis
@@ -31,4 +31,4 @@ class TracksCacher():
         data = {"days_with_prices": trackdb.dailyaverage(), "minimum": trackdb.minimum(), "maximum": trackdb.maximum(), "average": trackdb.average(), "datapoints": trackdb.datapoints(), "maximumpricejump_up": trackdb.maxjumpup(),  "maximumpricejump_down": trackdb.maxjumpdown()}
 
         #Set redis cache for 30 minutes
-        self.redis.setex(cache, datetime.timedelta(minutes=30), value=json.dumps(data))
+        self.redis.setex(cache, datetime.timedelta(hours=6), value=json.dumps(data))
