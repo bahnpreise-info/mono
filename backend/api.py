@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #encoding: utf-8
 
-from includes.functions import Logger, TrackPrices
+from includes.functions import Logger, TrackPrices,ConnectionPrices
 import time, falcon, json, datetime, redis
 from configparser import ConfigParser
 from orator import DatabaseManager
@@ -41,35 +41,16 @@ class Bahnpricesforconnection:
             resp.body = json.dumps({"status": "error", "data": {}, "msg": "Not enough info provided"})
             return
 
-        redis_cache = r.get("connection_price_{0}".format(id))
-        if redis_cache is None:
-            query = "SELECT bahn_monitoring_connections.start, \
-            bahn_monitoring_connections.end, \
-            bahn_monitoring_connections.starttime, \
-            bahn_monitoring_prices.time as querytime, \
-            bahn_monitoring_prices.price, \
-            DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
-            FROM bahn_monitoring_connections \
-            INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-            WHERE price > 0 AND \
-            bahn_monitoring_connections.id = {0} \
-            HAVING days_to_train_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141)".format(id)
-            database_prices = db.select(query)
+        #Initialize ConnectionPrices Class to gather some info from
+        connectiondb = ConnectionPrices(db, id, r)
 
-            data = {"start": "", "end": "", "starttime": "", "prices_days_to_departure": {}}
-
-            for price in database_prices:
-                data["start"] = price["start"]
-                data["end"] = price["end"]
-                data["starttime"] = price["starttime"].strftime("%Y-%m-%d %H:%M:%S")
-                data["prices_days_to_departure"].update({
-                    int(price["days_to_train_departure"]): float(price["price"])
-                })
-            #Set redis cache
-            r.setex("connection_price_{0}".format(id), timedelta(minutes=5), value=json.dumps(data))
-        else:
-            print("Using redis cache to serve request")
+        #The connection may be already cached
+        redis_cache = r.get(connectiondb.getRedisPath())
+        if redis_cache is not None:
             data = json.loads(redis_cache)
+        else:
+           data = connectiondb.getAggregatedData()
+
         resp.body = json.dumps({"status": "success", "data": data})
 
 class Getallconnections:
@@ -136,19 +117,16 @@ class Gettrackprice:
             resp.body = json.dumps({"status": "error", "data": {"message": "Please specify 'start' and 'end' station as request parameter"}})
             return
 
-        #The combination is possibly cached in redis
-        cache="trackprice_{0}_{1}".format(start, end).replace(" ", "_")
-        redis_cache = r.get(cache)
+        #Initialize TrackPrices Class to gather some info from
+        trackdb = TrackPrices(db, {"start": start.decode('utf-8'), "end": end.decode(('utf-8'))}, redis)
+
+        #The connection may be already cached
+        redis_cache = r.get(trackdb.getRedisPath())
         if redis_cache is not None:
-            print("Using redis cache to serve request")
-            resp.body = json.dumps({"status": "success", "data": json.loads(redis_cache)})
-            return
+            data = json.loads(redis_cache)
+        else:
+            data = trackdb.getAggregatedData()
 
-        trackdb = TrackPrices(db, {"start": start.decode('utf-8'), "end": end.decode(('utf-8'))})
-        data = {"days_with_prices": trackdb.dailyaverage(), "minimum": trackdb.minimum(), "maximum": trackdb.maximum(), "average": trackdb.average(), "datapoints": trackdb.datapoints(), "maximumpricejump_up": trackdb.maxjumpup(),  "maximumpricejump_down": trackdb.maxjumpdown()}
-
-        #Set redis cache for 30 minutes
-        r.setex(cache, timedelta(minutes=30), value=json.dumps(data))
         resp.body = json.dumps({"status": "success", "data": data})
 
 class Getrandomconnection:
@@ -207,7 +185,7 @@ api.add_route('/stats', Getstats())
 
 
 api.add_route('/connections/getallconnections', Getallconnections())
-pi.add_route('/connections/getaverageconnectionprice', Bahnpricesforconnection()) #todo refactor to functions
+api.add_route('/connections/getaverageconnectionprice', Bahnpricesforconnection()) #todo refactor to funktion
 api.add_route('/connections/getalltracks', Getalltracks())
 api.add_route('/connections/getaveragetrackprice', Gettrackprice())
 api.add_route('/connections/getrandomconnection', Getrandomconnection())

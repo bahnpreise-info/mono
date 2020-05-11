@@ -19,16 +19,13 @@ class ConnectionsCacher():
 
     def cache(self, connection):
         self.logger.write("Processing {0} -> {1} @ {2}".format(connection["start"], connection["end"], connection["starttime"]))
+        connectiondb = ConnectionPrices(self.db, connection["id"], self.redis)
 
         #The connection may be already cached
-        cache="connection_{0}".format(connection["id"])
+        cache=connectiondb.getRedisPath()
         redis_cache = self.redis.get(cache)
         if redis_cache is not None:
             self.logger.write("cache {0} already present".format(cache))
             return
 
-        connectiondb = ConnectionPrices(self.db, connection)
-        data = {"days_with_prices": connectiondb.dailyaverage(), "minimum": connectiondb.minimum(), "maximum": connectiondb.maximum(), "average": connectiondb.average(), "datapoints": connectiondb.datapoints(), "maximumpricejump_up": connectiondb.maxjumpup(),  "maximumpricejump_down": connectiondb.maxjumpdown()}
-
-        #Set redis cache for 6 hours
-        self.redis.setex(cache, datetime.timedelta(hours=6), value=json.dumps(data))
+        connectiondb.getAggregatedData()
