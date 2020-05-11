@@ -295,8 +295,7 @@ class ConnectionPrices:
 class Statistics:
     def __init__(self, db):
         self.db = db
-        offset = 130
-        self.offset = offset.getoffset
+        self. offset = 130
 
     def prices_to_weekdays(self):
         query = "SELECT \
