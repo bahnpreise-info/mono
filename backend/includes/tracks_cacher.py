@@ -12,11 +12,14 @@ class TracksCacher():
         self.db = db
         self.offset = Offset()
         while True:
-            self.logger.write("Start calculating tracks")
-            for track in self.db.select("SELECT DISTINCT start, end FROM bahn_monitoring_connections WHERE DATEDIFF(NOW(), bahn_monitoring_connections.starttime) < {0} AND DATEDIFF(NOW(), bahn_monitoring_connections.starttime) >= 0".format(self.offset.get())):
-                self.cache(track)
-            self.logger.write("Finished calculating tracks")
-            time.sleep(600)
+            try:
+                self.logger.write("Start calculating tracks")
+                for track in self.db.select("SELECT DISTINCT start, end FROM bahn_monitoring_connections WHERE DATEDIFF(NOW(), bahn_monitoring_connections.starttime) < {0} AND DATEDIFF(NOW(), bahn_monitoring_connections.starttime) >= 0".format(self.offset.get())):
+                    self.cache(track)
+                self.logger.write("Finished calculating tracks")
+                time.sleep(600)
+            except:
+                time.sleep(10)
 
     def cache(self, track):
         self.logger.write("Processing {0} -> {1}".format(track["start"], track["end"]))

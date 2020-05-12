@@ -30,9 +30,12 @@ class Scheduler():
             print("FATAL ERROR: Could not setup a logger. Stopped execution.")
             self.status['database'] = False
         while True:
-            if self.status['logger'] == True and self.status['database'] == True:
-                self.checkConnections()
-            time.sleep(60)
+            try:
+                if self.status['logger'] == True and self.status['database'] == True:
+                    self.checkConnections()
+                time.sleep(60)
+            except:
+                time.sleep(10)
 
 
     def setupLogger(self):

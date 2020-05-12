@@ -20,8 +20,8 @@ oratorconfig = {
 db = DatabaseManager(oratorconfig)
 r = redis.Redis(host=config.get('redis', 'host'))
 
-#_thread.start_new_thread( scheduler.Scheduler, () )
-#_thread.start_new_thread( connectionmanager.ConnectionManager, ())
+_thread.start_new_thread( scheduler.Scheduler, () )
+_thread.start_new_thread( connectionmanager.ConnectionManager, ())
 _thread.start_new_thread( statistic_cacher.StatisticsCalculator, (db, r))
 _thread.start_new_thread( tracks_cacher.TracksCacher, (db, r,))
 _thread.start_new_thread( connections_cacher.ConnectionsCacher, (db, r,))

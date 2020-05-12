@@ -14,9 +14,12 @@ class ConnectionManager():
             self.status['database'] = False
 
         while True:
-            if self.status['logger'] == True and self.status['database'] == True:
-                self.setConnections()
-            time.sleep(60)
+            try:
+                if self.status['logger'] == True and self.status['database'] == True:
+                    self.setConnections()
+                time.sleep(60)
+            except:
+                time.sleep(10)
 
     def setupLogger(self):
         try:
