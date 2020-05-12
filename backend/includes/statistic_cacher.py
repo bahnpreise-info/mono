@@ -11,14 +11,10 @@ class StatisticsCalculator():
         self.redis = redis
         self.logger = Logger("StatisticsCacher")
         while True:
-            try:
-                self.logger.write("Start calculating statistics")
-                self.cache()
-                self.logger.write("Finished calculating statistics")
-                time.sleep(60)
-            except:
-                self.logger.write("Exception occurred while calculating statistics")
-
+            self.logger.write("Start calculating statistics")
+            self.cache()
+            self.logger.write("Finished calculating statistics")
+            time.sleep(60)
     # calculate the statistics
     def cache(self):
         cache = "stats_data"
