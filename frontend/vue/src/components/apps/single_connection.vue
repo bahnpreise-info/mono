@@ -8,7 +8,8 @@
               <!-- Chart -->
               <div class="card shadow mb-4">
                   <div class="card-header py-3">
-                      <h6 class="m-0 font-weight-bold text-primary" id="chart_name">{{chart_name}}</h6> </div>
+                      <h6 class="m-0 font-weight-bold text-primary" id="chart_name">{{chart_name}}</h6>
+                  </div>
                   <div class="card-body card-nopadding">
                       <div class="chart-area" id="bahnPriceAreachart1Top">
                           <canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>
@@ -16,6 +17,7 @@
                   </div>
               </div>
           </div>
+
           <!-- Search beside chart -->
           <div class="col-xl-3">
               <div class="row" style="padding-bottom: 1em">
@@ -157,6 +159,7 @@ function number_format(number, decimals, dec_point, thousands_sep) {
 }
 
 import axios from 'axios'
+import { CirclesToRhombusesSpinner } from 'epic-spinners'
 export default {
     name: 'home',
     computed: {},
@@ -192,10 +195,18 @@ export default {
             this.searchresults = {};
         },
         getChartData: function (connection_id = null) {
+            $("#bahnPriceAreachart1").remove();
+            $("#bahnPriceAreachart1Top").html('' +
+                '<div class="circles-to-rhombuses-spinner">\n' +
+                '<div class="circle"></div>\n' +
+                '<div class="circle"></div>\n' +
+                '<div class="circle"></div>\n' +
+                '</div>' +
+                '<canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>');
             if (connection_id === null) {
                 axios.get(this.apiUrl + '/connections/getrandomconnection').then(response => {
-                    this.data = response;
-                    if (typeof this.data === 'undefined' || typeof this.data.data.data.connection_id === 'undefined'){
+                    this.data = response.data.data; //Axios returns weird stuff, but hey..
+                    if (typeof this.data === 'undefined' || typeof this.data.connection_id === 'undefined'){
                         this.getChartData()
                     } else {
                         this.renderChart();
@@ -204,14 +215,14 @@ export default {
             } else {
                 let axiosparams = new URLSearchParams();
                 axiosparams.append('connection_id', connection_id);
-                axios.get(this.apiUrl + '/prices', {params: axiosparams}).then(response => {
-                    this.data = response;
+                axios.get(this.apiUrl + '/connections/getaverageconnectionprice', {params: axiosparams}).then(response => {
+                    this.data = response.data.data; //Axios returns weird stuff, but hey..
                     this.renderChart();
                 });
             }
         },
         renderChart: function () {
-            this.connection_url = "https://bahnpreise.info/#/single_connection/" + this.data.data.data.connection_id;
+            this.connection_url = "https://bahnpreise.info/#/single_connection/" + this.data.connection_id;
             // Set new default font family and font color to mimic Bootstrap's default styling
             Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
             Chart.defaults.global.defaultFontColor = '#858796';
@@ -221,7 +232,7 @@ export default {
             let prices = []; //Price array - in same order as dates and dates_detailed
 
             //Extract dates from key => value dict/hash
-            $.each(this.data.data.data.prices_days_to_departure, function (index, value) {
+            $.each(this.data.days_with_prices, function (index, value) {
                 dates.push(index);
             });
             dates.sort(function (a, b) {
@@ -234,11 +245,11 @@ export default {
             }
 
             for (var i = 0; i < dates.length; i++) {
-                prices.push(this.data.data.data.prices_days_to_departure[dates[i]]);
+                prices.push(this.data.days_with_prices[dates[i]]);
             }
 
             //End of building the arrays for the chart
-            this.chart_name = this.data.data.data.start + " -> " + this.data.data.data.end + " @ " + this.data.data.data.starttime;
+            this.chart_name = this.data.start + " -> " + this.data.end + " @ " + this.data.starttime;
 
             //Cleanup old chart
             $("#bahnPriceAreachart1").remove();

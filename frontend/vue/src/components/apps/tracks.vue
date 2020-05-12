@@ -184,6 +184,14 @@ export default {
             }
         },
         setChartData: function (id = null) {
+            $("#bahnPriceAreachart1").remove();
+            $("#bahnPriceAreachart1Top").html('' +
+                '<div class="circles-to-rhombuses-spinner">\n' +
+                '<div class="circle"></div>\n' +
+                '<div class="circle"></div>\n' +
+                '<div class="circle"></div>\n' +
+                '</div>' +
+                '<canvas id="bahnPriceAreachart1" style="position: relative; height:40vh; width:70vw"></canvas>');
             if (id === null) {
                 id = Math.floor(Math.random() * this.all_connections.length);
                 this.start = this.all_connections[id]["start"];

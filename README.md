@@ -14,8 +14,8 @@ Unter [www.bahnpreise.info](https://bahnpreise.info) ist die Instanz der Entwick
 ## Aufbau
 ### Backend
 Das Backend sammelt die Daten und managed die Verbindungen. Geschrieben in Python.
-### API
-Die JSON-API stellt die Informationen des Backends zur Verfügung. Geschrieben in Python.
+* #### API
+  * Die JSON-API ist ein Unterprogramm des Backends und stellt die Informationen des Backends über eine Json Schnittstelle zur Verfügung. Geschrieben in Python.
 ### Frontend
 Das Frontend ist eine Website, geschrieben in JavaScript, sie stellt die Daten der API graphisch dar.
 
@@ -42,18 +42,18 @@ Thats it, now the database should fill up with connections and prices.
 In the frontend folder you will find a simple HTML/Javascript only application which can be thrown on basically every webserver out there. No php/external ressources needed.
 
 ### API
-In the `api` folder you will find a python/falcon application which needs the following packages installed via apt / pip:
+In the `backend` folder you will find a python/falcon application which needs the following packages installed via apt / pip:
 ```
 apt-get update && apt-get install python python-pip python-mysqldb -y
 pip install gunicorn falcon orator redis
 ```
 
-Also, the API needs to connect to the same database as the sheduler backend. You should have the mysql database set up at this point, so you can simply instert the host/username/database/password into the `mysql.ini` config file in the config folder.
+Also, the API needs to connect to the same database as the sheduler backend. You should have the mysql database set up at this point, so you can simply instert the host/username/database/password into the `database.ini` config file in the backend folder.
 
 #### Please also note that you will need a redis database connected to the api. You can configure the hostname in the main.py directly.
 
 After that, the api can be started with the command provided in the startapi.sh:
-`gunicorn --workers 4 -b 0.0.0.0:8080 main:api -b [::1]:8080 --reload`
+`gunicorn --workers 4 -b 0.0.0.0:8080 api:api -b [::1]:8080 --reload`
 
 ## Externe Ressourcen
 * [Schiene Bibliothek](https://github.com/kennell/schiene) von Kennell
