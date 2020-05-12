@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #encoding: utf-8
 
-from includes.functions import Logger, TrackPrices,ConnectionPrices
+from includes.functions import Logger, TrackPrices, ConnectionPrices, Offset
 import time, falcon, json, datetime, redis
 from configparser import ConfigParser
 from orator import DatabaseManager
@@ -134,33 +134,34 @@ class Getrandomconnection:
         resp.set_header('Access-Control-Allow-Origin', '*')
         resp.set_header('Access-Control-Allow-Methods', 'GET')
         resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
-        #Get random id
-        query = "SELECT id FROM bahn_monitoring_connections WHERE active = 1 ORDER BY RAND() LIMIT 1"
+
+        offset = Offset()
+        #Get id of random connection which has at least 10 prices collected
+        query = "SELECT \
+            bahn_monitoring_connections.id as id, \
+            COUNT(bahn_monitoring_prices.id) as counter \
+            FROM bahn_monitoring_connections \
+            INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
+            WHERE bahn_monitoring_connections.active = 1 \
+            AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {0} \
+            AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+            GROUP BY bahn_monitoring_connections.id \
+            HAVING counter > 10 \
+            ORDER BY RAND() \
+            LIMIT 1".format(offset.get())
         result = db.select(query)
 
-        query = "SELECT bahn_monitoring_connections.id as connection_id, \
-                bahn_monitoring_connections.start, \
-        bahn_monitoring_connections.end, \
-        bahn_monitoring_connections.starttime, \
-        bahn_monitoring_prices.time as querytime, \
-        bahn_monitoring_prices.price, \
-        DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
-        FROM bahn_monitoring_connections \
-        INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-        WHERE bahn_monitoring_connections.id = {0} \
-        HAVING days_to_train_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141)".format(result[0]["id"])
-        result = db.select(query)
+        #Initialize ConnectionPrices Class to gather some info from
+        connectiondb = ConnectionPrices(db, result[0]['id'], r)
 
-        data = {"start": "", "end": "", "connection_id": "", "starttime": "", "prices_days_to_departure": {}}
-        for price in result:
-            data["start"] = price["start"]
-            data["end"] = price["end"]
-            data["connection_id"] = price["connection_id"]
-            data["starttime"] = price["starttime"].strftime("%Y-%m-%d %H:%M:%S")
-            data["prices_days_to_departure"].update({
-                int(price["days_to_train_departure"]): float(price["price"])
-            })
-            resp.body = json.dumps({"status": "success", "data": data})
+        #The connection may be already cached
+        redis_cache = r.get(connectiondb.getRedisPath())
+        if redis_cache is not None:
+            data = json.loads(redis_cache)
+        else:
+            data = connectiondb.getAggregatedData()
+
+        resp.body = json.dumps({"status": "success", "data": data})
 
 class Getstats:
     def on_get(self, req, resp):

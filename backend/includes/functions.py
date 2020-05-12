@@ -22,7 +22,7 @@ class Offset:
 
 class TrackPrices:
     def __init__(self, connection, track, redis):
-        self.offset = 130
+        self.offset = Offset()
         self.connection = connection
         self.track = track
         self.redis = redis
@@ -44,7 +44,7 @@ class TrackPrices:
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset)
+                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
 
         result = self.connection.select(query)
         if result is not None and result[0]["count"] is not None:
@@ -59,7 +59,7 @@ class TrackPrices:
                         INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset)
+                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["average_price"] is not None:
             return self.float(result[0]["average_price"])
@@ -79,7 +79,7 @@ class TrackPrices:
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
                         GROUP BY days_to_train_departure \
-                        ORDER BY bahn_monitoring_prices.time ASC".format(self.track["start"], self.track["end"], self.offset)
+                        ORDER BY bahn_monitoring_prices.time ASC".format(self.track["start"], self.track["end"], self.offset.get())
         _days_with_prices = {}
         for row in self.connection.select(query):
             _days_with_prices[row["days_to_train_departure"]] = row["average_price"]
@@ -118,7 +118,7 @@ class TrackPrices:
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset)
+                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["maximum"] is not None:
             maximum = result[0]["maximum"]
@@ -132,7 +132,7 @@ class TrackPrices:
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND bahn_monitoring_prices.price > 100 \
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset)
+                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["maximum"] is not None:
             maximum = result[0]["maximum"]
@@ -146,7 +146,7 @@ class TrackPrices:
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset)
+                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["minimum"] is not None:
             minimum = result[0]["minimum"]
@@ -162,8 +162,8 @@ class TrackPrices:
         return "trackprice_{0}_{1}".format(self.track["start"].replace(' ', '_'), self.track["end"].replace(' ', '_'))
 
 class ConnectionPrices:
-    def __init__(self, db, connection_id, redis, offset):
-        self.offset = offset
+    def __init__(self, db, connection_id, redis):
+        self.offset = Offset()
         self.db = db
         self.redis = redis
         self.connection_id = connection_id

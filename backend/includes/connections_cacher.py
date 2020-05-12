@@ -20,7 +20,7 @@ class ConnectionsCacher():
 
     def cache(self, connection, offset):
         self.logger.write("Processing {0} -> {1} @ {2}".format(connection["start"], connection["end"], connection["starttime"]))
-        connectiondb = ConnectionPrices(self.db, connection["id"], self.redis, offset)
+        connectiondb = ConnectionPrices(self.db, connection["id"], self.redis)
 
         #The connection may be already cached
         cache=connectiondb.getRedisPath()
