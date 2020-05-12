@@ -63,7 +63,7 @@ class Getallconnections:
                     "endtime": connection["endtime"].strftime("%Y-%m-%d %H:%M:%S"),
                 })
             #Set redis cache
-            r.setex("all_connections", timedelta(minutes=5), value=json.dumps(data))
+            r.setex("all_connections", timedelta(minutes=60), value=json.dumps(data))
         else:
             print("Using redis cache to serve request")
             data = json.loads(redis_cache)
