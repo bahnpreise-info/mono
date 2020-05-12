@@ -309,7 +309,7 @@ class ConnectionPrices:
             return result[0]
 
     def getAggregatedData(self):
-        data =  {"start": self.getInfo()['start'], "end": self.getInfo()['end'], "starttime": self.getInfo()['starttime'].strftime("%Y-%m-%d %H:%M:%S"), "days_with_prices": self.dailyaverage(), "minimum": self.minimum(), "maximum": self.maximum(), "average": self.average(), "datapoints": self.datapoints(), "maximumpricejump_up": self.maxjumpup(),  "maximumpricejump_down": self.maxjumpdown()}
+        data =  {"connection_id": self.getInfo()['id'], "start": self.getInfo()['start'], "end": self.getInfo()['end'], "starttime": self.getInfo()['starttime'].strftime("%Y-%m-%d %H:%M:%S"), "days_with_prices": self.dailyaverage(), "minimum": self.minimum(), "maximum": self.maximum(), "average": self.average(), "datapoints": self.datapoints(), "maximumpricejump_up": self.maxjumpup(),  "maximumpricejump_down": self.maxjumpdown()}
         #Set redis cache for 6 hours
         self.log.write("Setting redis cache: {0}".format(data))
         self.redis.setex(self.getRedisPath(), datetime.timedelta(hours=6), value=json.dumps(data))
