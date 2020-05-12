@@ -287,7 +287,6 @@ class ConnectionPrices:
 
     def minimum(self):
         #Get lowest price
-        #todo
         minimum = 0.0
         query = "SELECT \
                         MIN(bahn_monitoring_prices.price) as minimum \

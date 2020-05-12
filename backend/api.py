@@ -110,7 +110,7 @@ class Gettrackprice:
             return
 
         #Initialize TrackPrices Class to gather some info from
-        trackdb = TrackPrices(db, {"start": start.decode('utf-8'), "end": end.decode(('utf-8'))}, redis)
+        trackdb = TrackPrices(db, {"start": start.decode('utf-8'), "end": end.decode(('utf-8'))}, r)
         resp.body = json.dumps({"status": "success", "data": trackdb.getAggregatedData()})
 
 class Getrandomconnection:
@@ -157,12 +157,11 @@ class Getstats:
 prometheus = PrometheusMiddleware()
 api = falcon.API(middleware=prometheus)
 api.add_route('/metrics', prometheus)
-api.add_route('/prices', Bahnpricesforconnection()) #todo refactor to /connections/getaverageconnectionprice
 api.add_route('/stats', Getstats())
 
 
 api.add_route('/connections/getallconnections', Getallconnections())
-api.add_route('/connections/getaverageconnectionprice', Bahnpricesforconnection()) #todo refactor to funktion
+api.add_route('/connections/getaverageconnectionprice', Bahnpricesforconnection())
 api.add_route('/connections/getalltracks', Getalltracks())
 api.add_route('/connections/getaveragetrackprice', Gettrackprice())
 api.add_route('/connections/getrandomconnection', Getrandomconnection())
