@@ -43,15 +43,7 @@ class Bahnpricesforconnection:
 
         #Initialize ConnectionPrices Class to gather some info from
         connectiondb = ConnectionPrices(db, id, r)
-
-        #The connection may be already cached
-        redis_cache = r.get(connectiondb.getRedisPath())
-        if redis_cache is not None:
-            data = json.loads(redis_cache)
-        else:
-           data = connectiondb.getAggregatedData()
-
-        resp.body = json.dumps({"status": "success", "data": data})
+        resp.body = json.dumps({"status": "success", "data": connectiondb.getAggregatedData()})
 
 class Getallconnections:
     def on_get(self, req, resp):
@@ -119,15 +111,7 @@ class Gettrackprice:
 
         #Initialize TrackPrices Class to gather some info from
         trackdb = TrackPrices(db, {"start": start.decode('utf-8'), "end": end.decode(('utf-8'))}, redis)
-
-        #The connection may be already cached
-        redis_cache = r.get(trackdb.getRedisPath())
-        if redis_cache is not None:
-            data = json.loads(redis_cache)
-        else:
-            data = trackdb.getAggregatedData()
-
-        resp.body = json.dumps({"status": "success", "data": data})
+        resp.body = json.dumps({"status": "success", "data": trackdb.getAggregatedData()})
 
 class Getrandomconnection:
     def on_get(self, req, resp):
@@ -153,15 +137,7 @@ class Getrandomconnection:
 
         #Initialize ConnectionPrices Class to gather some info from
         connectiondb = ConnectionPrices(db, result[0]['id'], r)
-
-        #The connection may be already cached
-        redis_cache = r.get(connectiondb.getRedisPath())
-        if redis_cache is not None:
-            data = json.loads(redis_cache)
-        else:
-            data = connectiondb.getAggregatedData()
-
-        resp.body = json.dumps({"status": "success", "data": data})
+        resp.body = json.dumps({"status": "success", "data": connectiondb.getAggregatedData()})
 
 class Getstats:
     def on_get(self, req, resp):

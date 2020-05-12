@@ -153,6 +153,11 @@ class TrackPrices:
         return self.float(minimum)
 
     def getAggregatedData(self):
+        #We might already have a cache available
+        redis_cache = self.redis.get(self.getRedisPath())
+        if redis_cache is not None:
+            return json.loads(redis_cache)
+
         data = {"days_with_prices": self.dailyaverage(), "minimum": self.minimum(), "maximum": self.maximum(), "average": self.average(), "datapoints": self.datapoints(), "maximumpricejump_up": self.maxjumpup(),  "maximumpricejump_down": self.maxjumpdown()}
         #Set redis cache for 6 hours
         self.log.write("Setting redis cache: {0}".format(data))
@@ -309,6 +314,11 @@ class ConnectionPrices:
             return result[0]
 
     def getAggregatedData(self):
+        #We might already have a cache available
+        redis_cache = self.redis.get(self.getRedisPath())
+        if redis_cache is not None:
+            return json.loads(redis_cache)
+
         data =  {"connection_id": self.getInfo()['id'], "start": self.getInfo()['start'], "end": self.getInfo()['end'], "starttime": self.getInfo()['starttime'].strftime("%Y-%m-%d %H:%M:%S"), "days_with_prices": self.dailyaverage(), "minimum": self.minimum(), "maximum": self.maximum(), "average": self.average(), "datapoints": self.datapoints(), "maximumpricejump_up": self.maxjumpup(),  "maximumpricejump_down": self.maxjumpdown()}
         #Set redis cache for 6 hours
         self.log.write("Setting redis cache: {0}".format(data))

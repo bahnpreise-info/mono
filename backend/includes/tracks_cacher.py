@@ -21,9 +21,4 @@ class TracksCacher():
     def cache(self, track):
         self.logger.write("Processing {0} -> {1}".format(track["start"], track["end"]))
         trackdb = TrackPrices(self.db, track, self.redis)
-        redis_cache = self.redis.get(trackdb.getRedisPath())
-        if redis_cache is not None:
-            self.logger.write("cache {0} already present".format(trackdb.getRedisPath()))
-            return
-
-        trackdb.getAggregatedData()
+        trackdb.getAggregatedData() #we don't do anything, but the function refreshed the cache

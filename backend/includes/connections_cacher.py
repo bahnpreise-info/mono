@@ -24,9 +24,4 @@ class ConnectionsCacher():
 
         #The connection may be already cached
         cache=connectiondb.getRedisPath()
-        redis_cache = self.redis.get(cache)
-        if redis_cache is not None:
-            self.logger.write("cache {0} already present".format(cache))
-            return
-
-        connectiondb.getAggregatedData()
+        connectiondb.getAggregatedData() #we don't do anything, but the function refreshed the cache
