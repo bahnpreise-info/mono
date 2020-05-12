@@ -157,6 +157,7 @@ class TrackPrices:
         #Set redis cache for 6 hours
         self.log.write("Setting redis cache: {0}".format(data))
         self.redis.setex(self.getRedisPath(), datetime.timedelta(hours=6), value=json.dumps(data))
+        return data
 
     def getRedisPath(self):
         return "trackprice_{0}_{1}".format(self.track["start"].replace(' ', '_'), self.track["end"].replace(' ', '_'))
@@ -312,6 +313,7 @@ class ConnectionPrices:
         #Set redis cache for 6 hours
         self.log.write("Setting redis cache: {0}".format(data))
         self.redis.setex(self.getRedisPath(), datetime.timedelta(hours=6), value=json.dumps(data))
+        return data
 
     def getRedisPath(self):
         return "connection_{0}".format(self.connection_id)
