@@ -2,7 +2,7 @@
 #encoding: utf-8
 
 from includes.functions import Logger, TrackPrices, ConnectionPrices, Offset
-import time, falcon, json, datetime, redis
+import time, falcon, json, datetime, redis, random
 from configparser import ConfigParser
 from orator import DatabaseManager
 from datetime import timedelta
@@ -53,7 +53,7 @@ class Getallconnections:
         redis_cache = r.get("all_connections")
         if redis_cache is None:
             data = []
-            database_connections = db.table('bahn_monitoring_connections').get()
+            database_connections = db.table('bahn_monitoring_connections').where('active', '1').get()
             for connection in database_connections:
                 data.append({
                     "connection_id": connection["id"],
@@ -119,6 +119,14 @@ class Getrandomconnection:
         resp.set_header('Access-Control-Allow-Methods', 'GET')
         resp.set_header('Access-Control-Allow-Headers', 'Content-Type')
 
+        cache = r.get("random_connections")
+        if cache is not None:
+            ids = json.loads(cache)
+            #Initialize ConnectionPrices Class to gather some info from
+            connectiondb = ConnectionPrices(db, random.choice(ids)['id'], r)
+            resp.body = json.dumps({"status": "success", "data": connectiondb.getAggregatedData()})
+            return
+
         offset = Offset()
         #Get id of random connection which has at least 10 prices collected
         query = "SELECT \
@@ -132,11 +140,12 @@ class Getrandomconnection:
             GROUP BY bahn_monitoring_connections.id \
             HAVING counter > 10 \
             ORDER BY RAND() \
-            LIMIT 1".format(offset.get())
+            LIMIT 50".format(offset.get())
         result = db.select(query)
+        r.setex("random_connections", timedelta(minutes=60), value=json.dumps(result))
 
         #Initialize ConnectionPrices Class to gather some info from
-        connectiondb = ConnectionPrices(db, result[0]['id'], r)
+        connectiondb = ConnectionPrices(db, random.choice(result)['id'], r)
         resp.body = json.dumps({"status": "success", "data": connectiondb.getAggregatedData()})
 
 class Getstats:

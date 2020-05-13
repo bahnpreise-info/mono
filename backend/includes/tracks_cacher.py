@@ -14,7 +14,7 @@ class TracksCacher():
         while True:
             try:
                 self.logger.write("Start calculating tracks")
-                for track in self.db.select("SELECT DISTINCT start, end FROM bahn_monitoring_connections WHERE DATEDIFF(NOW(), bahn_monitoring_connections.starttime) < {0} AND DATEDIFF(NOW(), bahn_monitoring_connections.starttime) >= 0".format(self.offset.get())):
+                for track in self.db.select("SELECT DISTINCT start, end FROM bahn_monitoring_connections WHERE active = 1"):
                     self.cache(track)
                 self.logger.write("Finished calculating tracks")
                 time.sleep(600)
