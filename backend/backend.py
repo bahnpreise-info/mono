@@ -48,7 +48,7 @@ def track_cache(track):
 while True:
   try:
     #Pool worker
-    pool = Pool(4)
+    pool = Pool(6)
     #cache connections
     for connection in db.select("SELECT * FROM bahn_monitoring_connections where active = 1"):
       pool.apply_async(connection_cache, (connection,))
