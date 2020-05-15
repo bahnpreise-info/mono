@@ -77,7 +77,7 @@ class Getalltracks:
         redis_cache = r.get("all_tracks")
         if redis_cache is None:
             data = []
-            result = db.table('bahn_monitoring_connections').where('active', '1').get()
+            result = db.table('bahn_monitoring_connections').where('active', '1').distinct().get()
             for track in result:
                 data.append({
                     "start": track["start"],
