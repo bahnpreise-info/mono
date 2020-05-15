@@ -77,15 +77,14 @@ class Getalltracks:
         redis_cache = r.get("all_tracks")
         if redis_cache is None:
             data = []
-            query = "SELECT DISTINCT start, end FROM bahn_monitoring_connections"
-            result = db.select(query)
+            result = db.table('bahn_monitoring_connections').where('active', '1').get()
             for track in result:
                 data.append({
                     "start": track["start"],
                     "end": track["end"],
                 })
             #Set redis cache
-            r.setex("all_tracks", timedelta(minutes=5), value=json.dumps(data))
+            r.setex("all_tracks", timedelta(minutes=60), value=json.dumps(data))
         else:
             print("Using redis cache to serve request")
             data = json.loads(redis_cache)

@@ -46,17 +46,14 @@ def track_cache(track):
   trackdb.getAggregatedData() #we don't need the result, but the function refreshed the cache
 
 while True:
-  try:
-    #Pool worker
-    pool = Pool(6)
-    #cache connections
-    for connection in db.select("SELECT * FROM bahn_monitoring_connections where active = 1"):
-      pool.apply_async(connection_cache, (connection,))
+  #Pool worker
+  pool = Pool(4)
+  #cache connections
+  for connection in db.table('bahn_monitoring_connections').where('active', '1').get():
+    pool.apply_async(connection_cache, (connection,))
 
-    #cache tracks
-    for track in db.select("SELECT DISTINCT start, end FROM bahn_monitoring_connections WHERE active = 1"):
-      pool.apply_async(track_cache, (track,))
-    pool.close()
-    pool.join()
-  except:
-    logger.write("Something went wrong, shrug")
+  #cache tracks
+  for track in db.table('bahn_monitoring_connections').where('active', '1').distinct().get():
+    pool.apply_async(track_cache, (track,))
+  pool.close()
+  pool.join()
