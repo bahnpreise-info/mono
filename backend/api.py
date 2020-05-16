@@ -134,8 +134,7 @@ class Getrandomconnection:
             FROM bahn_monitoring_connections \
             INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
             WHERE bahn_monitoring_connections.active = 1 \
-            AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {0} \
-            AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+            AND bahn_monitoring_prices.age < {0} \
             GROUP BY bahn_monitoring_connections.id \
             HAVING counter > 10 \
             ORDER BY RAND() \

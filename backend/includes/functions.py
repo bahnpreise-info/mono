@@ -43,8 +43,7 @@ class TrackPrices:
                         FROM bahn_monitoring_prices \
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
+                        AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
 
         result = self.connection.select(query)
         if result is not None and result[0]["count"] is not None:
@@ -54,12 +53,10 @@ class TrackPrices:
         #Get overall average for this track
         query = "SELECT \
                         ROUND(avg(bahn_monitoring_prices.price), 2) as average_price, \
-                        DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
                         FROM bahn_monitoring_connections \
                         INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
+                        AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["average_price"] is not None:
             return self.float(result[0]["average_price"])
@@ -72,12 +69,11 @@ class TrackPrices:
         #Get average prices grouped by days until the train departs (days_to_train_departure)
         query = "SELECT \
                         ROUND(avg(bahn_monitoring_prices.price), 2) as average_price, \
-                        DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
+                        bahn_monitoring_prices.days_to_departure AS days_to_train_departure \
                         FROM bahn_monitoring_connections \
                         INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-                        WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+                        WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' AND bahn_monitoring_connections.active = 1 \
+                        AND bahn_monitoring_prices.age < {2} \
                         GROUP BY days_to_train_departure \
                         ORDER BY bahn_monitoring_prices.time ASC".format(self.track["start"], self.track["end"], self.offset.get())
         _days_with_prices = {}
@@ -117,8 +113,7 @@ class TrackPrices:
                         FROM bahn_monitoring_prices \
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
+                        AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["maximum"] is not None:
             maximum = result[0]["maximum"]
@@ -131,8 +126,7 @@ class TrackPrices:
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND bahn_monitoring_prices.price > 100 \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
+                        AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["maximum"] is not None:
             maximum = result[0]["maximum"]
@@ -145,8 +139,7 @@ class TrackPrices:
                         FROM bahn_monitoring_prices \
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {2} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.track["start"], self.track["end"], self.offset.get())
+                        AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["minimum"] is not None:
             minimum = result[0]["minimum"]
@@ -189,8 +182,7 @@ class ConnectionPrices:
                         COUNT(bahn_monitoring_prices.id) as count \
                         FROM bahn_monitoring_prices \
                         WHERE bahn_monitoring_prices.connection_id = '{0}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {1} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.connection_id, self.offset.get())
+                        AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["count"] is not None:
             return self.int(result[0]["count"])
@@ -198,13 +190,11 @@ class ConnectionPrices:
     def average(self):
         #Get overall average for this connection
         query = "SELECT \
-                        ROUND(avg(bahn_monitoring_prices.price), 2) as average_price, \
-                        DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
+                        ROUND(avg(bahn_monitoring_prices.price), 2) as average_price \
                         FROM bahn_monitoring_connections \
                         INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.id = '{0}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {1} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.connection_id, self.offset.get())
+                        AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["average_price"] is not None:
             return self.float(result[0]["average_price"])
@@ -217,19 +207,18 @@ class ConnectionPrices:
         #Get average prices grouped by days until the train departs (days_to_train_departure)
         query = "SELECT \
                         ROUND(avg(bahn_monitoring_prices.price), 2) as average_price, \
-                        DATEDIFF(bahn_monitoring_connections.starttime, bahn_monitoring_prices.time) AS days_to_train_departure \
+                        bahn_monitoring_prices.days_to_departure AS days_to_train_departure \
                         FROM bahn_monitoring_connections \
                         INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.id = '{0}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {1} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+                        AND bahn_monitoring_prices.age < {1} \
                         GROUP BY days_to_train_departure \
-                        HAVING days_to_train_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141) \
+                        HAVING days_to_departure IN (1,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,69,70,71,79,80,81,89,90,91,99,100,101,109,110,111,119,120,121,129,130,131,139,140,141) \
                         ORDER BY bahn_monitoring_prices.time ASC".format(self.connection_id, self.offset.get())
         _days_with_prices = {}
         for row in self.db.select(query):
             _days_with_prices[row["days_to_train_departure"]] = row["average_price"]
-        self.dailyaverage_cache = _days_with_prices
+        self._dailyaverage = _days_with_prices
         return _days_with_prices
 
     def maxjumpup(self):
@@ -265,8 +254,7 @@ class ConnectionPrices:
                         MAX(DISTINCT bahn_monitoring_prices.price) as maximum \
                         FROM bahn_monitoring_prices \
                         WHERE bahn_monitoring_prices.connection_id = '{0}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {1} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.connection_id, self.offset.get())
+                        AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["maximum"] is not None:
             maximum = result[0]["maximum"]
@@ -278,8 +266,7 @@ class ConnectionPrices:
                         FROM bahn_monitoring_prices \
                         WHERE bahn_monitoring_prices.connection_id = '{0}' \
                         AND bahn_monitoring_prices.price > 100 \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {1} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.connection_id, self.offset.get())
+                        AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["maximum"] is not None:
             maximum = result[0]["maximum"]
@@ -292,8 +279,7 @@ class ConnectionPrices:
                         MIN(bahn_monitoring_prices.price) as minimum \
                         FROM bahn_monitoring_prices \
                         WHERE bahn_monitoring_prices.connection_id = '{0}' \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) < {1} \
-                        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.connection_id, self.offset.get())
+                        AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["minimum"] is not None:
             minimum = result[0]["minimum"]
@@ -337,8 +323,7 @@ class Statistics:
         ROUND(AVG(bahn_monitoring_prices.price), 2) as average, \
         WEEKDAY(bahn_monitoring_prices.time) AS weekday \
         FROM bahn_monitoring_prices \
-        WHERE DATEDIFF(NOW(), bahn_monitoring_prices.time) < {0} \
-        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+        WHERE bahn_monitoring_prices.age < {0} \
         GROUP by weekday".format(self.offset.get())
         return self.db.select(query)
 
@@ -347,8 +332,7 @@ class Statistics:
         ROUND(AVG(bahn_monitoring_prices.price), 2) as average, \
         WEEKDAY(bahn_monitoring_prices.time) AS weekday \
         FROM bahn_monitoring_prices \
-        WHERE DATEDIFF(NOW(), bahn_monitoring_prices.time) < {0} \
-        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+        WHERE bahn_monitoring_prices.age < {0} \
         GROUP by weekday \
         ORDER by average ASC \
         LIMIT 1".format(self.offset.get())
@@ -359,8 +343,7 @@ class Statistics:
         ROUND(AVG(bahn_monitoring_prices.price), 2) as average, \
         WEEKDAY(bahn_monitoring_prices.time) AS weekday \
         FROM bahn_monitoring_prices \
-        WHERE DATEDIFF(NOW(), bahn_monitoring_prices.time) < {0} \
-        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0 \
+        WHERE bahn_monitoring_prices.age < {0} \
         GROUP by weekday \
         ORDER by average DESC \
         LIMIT 1".format(self.offset.get())
@@ -370,8 +353,7 @@ class Statistics:
         query = "SELECT \
         ROUND(AVG(bahn_monitoring_prices.price), 2) as average \
         FROM bahn_monitoring_prices \
-        WHERE DATEDIFF(NOW(), bahn_monitoring_prices.time) < {0} \
-        AND DATEDIFF(NOW(), bahn_monitoring_prices.time) >= 0".format(self.offset.get())
+        WHERE bahn_monitoring_prices.age < {0}".format(self.offset.get())
         return self.db.select(query)[0]['average']
 
     def activeconnections(self):
