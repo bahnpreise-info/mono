@@ -52,7 +52,7 @@ class TrackPrices:
     def average(self):
         #Get overall average for this track
         query = "SELECT \
-                        ROUND(avg(bahn_monitoring_prices.price), 2) as average_price, \
+                        ROUND(avg(bahn_monitoring_prices.price), 2) as average_price \
                         FROM bahn_monitoring_connections \
                         INNER JOIN bahn_monitoring_prices on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
