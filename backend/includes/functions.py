@@ -109,28 +109,14 @@ class TrackPrices:
     def maximum(self):
         maximum = 0.0
         query = "SELECT \
-                        MAX(DISTINCT bahn_monitoring_prices.price) as maximum \
+                        MAX(bahn_monitoring_prices.price) as maximum \
                         FROM bahn_monitoring_prices \
                         INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
                         WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
                         AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
         result = self.connection.select(query)
         if result is not None and result[0]["maximum"] is not None:
-            maximum = result[0]["maximum"]
-
-        #Hacky workarround, mysql MAX function does not return values over 99.0 when > 100 is not given. Wtf.
-        #Query again for values > 100
-        query = "SELECT \
-                        MAX(DISTINCT bahn_monitoring_prices.price) as maximum \
-                        FROM bahn_monitoring_prices \
-                        INNER JOIN bahn_monitoring_connections on (bahn_monitoring_connections.id = bahn_monitoring_prices.connection_id) \
-                        WHERE bahn_monitoring_connections.start = '{0}' AND bahn_monitoring_connections.end = '{1}' \
-                        AND bahn_monitoring_prices.price > 100 \
-                        AND bahn_monitoring_prices.age < {2}".format(self.track["start"], self.track["end"], self.offset.get())
-        result = self.connection.select(query)
-        if result is not None and result[0]["maximum"] is not None:
-            maximum = result[0]["maximum"]
-        return self.float(maximum)
+            return self.float(result[0]["maximum"])
 
     def minimum(self):
         minimum = 0.0
@@ -249,28 +235,14 @@ class ConnectionPrices:
 
     def maximum(self):
         #Get highest price
-        maximum = 0.0
         query = "SELECT \
-                        MAX(DISTINCT bahn_monitoring_prices.price) as maximum \
+                        MAX(bahn_monitoring_prices.price) as maximum \
                         FROM bahn_monitoring_prices \
                         WHERE bahn_monitoring_prices.connection_id = '{0}' \
                         AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["maximum"] is not None:
-            maximum = result[0]["maximum"]
-
-        #Hacky workarround, mysql MAX function does not return values over 99.0 when > 100 is not given. Wtf.
-        #Query again for values > 100
-        query = "SELECT \
-                        MAX(DISTINCT bahn_monitoring_prices.price) as maximum \
-                        FROM bahn_monitoring_prices \
-                        WHERE bahn_monitoring_prices.connection_id = '{0}' \
-                        AND bahn_monitoring_prices.price > 100 \
-                        AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
-        result = self.db.select(query)
-        if result is not None and result[0]["maximum"] is not None:
-            maximum = result[0]["maximum"]
-        return self.float(maximum)
+            return self.float(result[0]["maximum"])
 
     def minimum(self):
         #Get lowest price
@@ -282,8 +254,7 @@ class ConnectionPrices:
                         AND bahn_monitoring_prices.age < {1}".format(self.connection_id, self.offset.get())
         result = self.db.select(query)
         if result is not None and result[0]["minimum"] is not None:
-            minimum = result[0]["minimum"]
-        return self.float(minimum)
+            return self.float(result[0]["minimum"])
 
     def getInfo(self):
         #small cache since this function is called multiple times
