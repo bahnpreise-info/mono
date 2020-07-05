@@ -249,7 +249,7 @@ export default {
 
             //End of building the arrays for the chart
             //Set chart name
-            this.chart_name = this.start + " -> " + this.end;
+            this.chart_name = this.start + " -> " + this.end + " (Durchschnittliche Preise)";
 
             //cleanup old chart
             $("#bahnPriceAreachart1").remove();
