@@ -26,7 +26,7 @@ logger = Logger("Backend")
 db = DatabaseManager(oratorconfig)
 
 #Redis instance
-r = redis.Redis(host=config.get('redis', 'host'))
+r = redis.Redis(host=config.get('redis', 'host'), password=config.get('redis', 'password'))
 
 #These can run single threaded
 _thread.start_new_thread( scheduler.Scheduler, () )

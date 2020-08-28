@@ -24,7 +24,7 @@ oratorconfig = {
 }
 db = DatabaseManager(oratorconfig)
 db.connection().enable_query_log()
-r = redis.Redis(host=config.get('redis', 'host'))
+r = redis.Redis(host=config.get('redis', 'host'), password=config.get('redis', 'password'))
 
 class Bahnpricesforconnection:
     def on_get(self, req, resp):
