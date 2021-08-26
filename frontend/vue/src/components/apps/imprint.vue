@@ -6,12 +6,6 @@
                     <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-primary">Imprint</h6> </div>
                     <div class="card-body"> <b>Verantwortliche nach §5 TMG</b>
-                        <br> Alexander Ebhart
-                        <br> Darmstädter Straße 97
-                        <br> 70376 Stuttgart
-                        <br> Mail: kontakt [at] alexander [minus] ebhart [punkt] de
-                        <br> Tel.: Null Eins Sieben Sechs Vier Sieben Eins Zwei Sieben Sechs Zwei Acht
-                        <br>
                         <br> Henry Brettschneider
                         <br> Albert-Braun-Straße 9b
                         <br> 76189 Karlsruhe
@@ -32,9 +26,8 @@
                         <br> Diese Datenschutzerklärung klärt über Art, Zweck und Verarbeitung von personenbezogenen Daten dieses Online-Angebots und zugehöriger Funktionen auf.
                         <br>
                         <br> <b>Verantwortlicher </b>
-                        <br> Alexander Ebhart
-                        <br> Mail: kontakt [at] alexander [minus] ebhart [punkt] de
-                        <br> Tel.: Null Eins Sieben Sechs Vier Sieben Eins Zwei Sieben Sechs Zwei Acht
+                        <br>Henry Brettschneider
+                        <br>Mail: info [at] stored [punkt] cc
                         <br>
                         <br> <b>Verarbeitete Daten</b>
                         <br> - Nutzungs- und Metadaten (z.B. IP-Adresse, Browser-Informationen, aufgerufene Seiten)
